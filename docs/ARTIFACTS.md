@@ -34,8 +34,11 @@
 
 | 产物相对路径 / 锚点 | 逻辑区域 | 状态 | 维护者 / 更新触发 | 来源 / 替代关系 / 依据说明 |
 |---|---|---|---|---|
+| CONTEXT.md | 方向 | current | 项目负责人 / 技术栈变更或架构重大调整时 | 项目核心上下文：产品定位、技术栈（omp + DBOS + BMAD）、架构原则（契约先行、Evidence 驱动、自愈机制、状态机分离、可恢复性）、5 阶段路线图、术语表 |
+| docs/adr/0001-contract-format-selection.md | 设计与决策 | wip | 项目负责人 / 调研完成后裁决 | ADR：契约格式选择（BMAD vs Spec Kit vs 自定义），当前状态为 Proposed，阻塞 Phase 2 契约层实现；需完成 Spec Kit 与 BMAD V6 实地调研后裁决 |
 | docs/ideas/inbox.md | 来源材料 | exploration | 团队与规划者 / 讨论产生新想法时 | 规划研讨碎片想法池，非现行基准 |
 | docs/interviews/ | 来源材料 | reference | 规划者 / 研讨结束时 | 结构化访谈纪要归档目录 |
 | docs/interviews/2026-10-06-mission-mode-kickoff.md | 来源材料 | reference | 规划者 / 研讨结束时 | 立项研讨纪要：droid mission 机制逆向、技术栈定案（omp + DBOS + BMAD）、缺口清单与命名决策；已脱敏本机路径 |
 | docs/interviews/2026-10-06-droid-mission-deep-analysis.md | 来源材料 | reference | 分析团队 / 深度摸排完成时 | 12 个 Agent 全面摸排报告：10 大关键设计模式、5 个反模式、实现缺口清单、分阶段路线图（8-12 周）；基于 mission mis_6a05f5e2 的 288 个文件、89.2 万 tokens 深度分析 |
+
 
