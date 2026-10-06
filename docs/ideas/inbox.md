@@ -233,7 +233,48 @@
   - 依赖 recv() 人机交互原语（DBOS `ctx.recv()` 或自建等效实现，ADR-0001 封顶条款未包含此能力）
   - 需要定义挑战契约的触发条件（什么算"无法实现"）与裁决选项格式
   - 建议 Phase 2.2 与 Orchestrator 自适应一并实施
-- **状态**：exploration（与 IDEA-261006-11 强关联，Phase 2.2 实施）
+### [IDEA-261006-13] 愿景守护机制（防偏离初衷）
+- **提出时间与来源**：2026-10-06（契约格式设计访谈补充，来源 `docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md` 追加）
+- **核心设想与场景**：在 Orchestrator 执行任何重大调整前（修改断言、改架构、取消 Mission），增加**愿景一致性验证**：①读取初始访谈记录（mission-kickoff.md）和 mission.md（用户核心目标）；②用 AI 判断提议的改动是否与初衷冲突；③分类为重大冲突（必须问人）、轻微冲突（可多 AI 裁决）、无冲突（自动执行）。重大冲突时，调用 eli5（简单语言解释）、wait-what（质疑假设）、archify（可视化影响）辅助人类理解后，由用户最终裁决。
+- **技术细节**：
+  ```typescript
+  // 愿景冲突检测
+  const visionCheck = await checkVisionConflict({
+    proposedChange: issue.suggestedFix,
+    missionDir
+  });
+  
+  if (visionCheck.hasConflict) {
+    // 重大冲突 → 解释性说明 + 人工裁决
+    const explanations = await explainToHuman(issue, visionCheck);
+    return {
+      type: 'challenge_contract',
+      visionConflict: visionCheck,
+      explanations,  // { eli5, critique, diagram }
+      requiresHumanDecision: true
+    };
+  }
+  ```
+- **冲突判定标准**：
+  - 重大冲突：改动违背用户明确表达的目标、边界或核心约束
+  - 轻微冲突：调整实现细节，核心目标不变
+  - 无冲突：技术调整，不影响愿景
+- **多 AI 裁决集成**：轻微冲突且人不确定时，启动 lazypack-discipline §9 多 AI 讨论章程（三轮封顶：独立提案 → 互评 → 投票，僵局交用户裁决）
+- **解释性说明工具**：
+  - eli5：用简单语言解释技术问题
+  - wait-what：质疑提案的隐含假设
+  - archify：可视化架构影响（时序图、架构图）
+- **收益**：
+  - 防止 Orchestrator 自动调整偏离用户初衷
+  - 人不知道怎么选时，可借助多 AI 裁决
+  - 解释性说明降低理解门槛，提升决策质量
+- **未立项原因/权衡**：
+  - 依赖 IDEA-261006-11（Orchestrator 动态调整）
+  - 依赖 lazypack-discipline §9（多 AI 讨论章程）
+  - 需要访谈记录结构化存储（mission-kickoff.md）
+  - 需要 eli5 / wait-what / archify 等解释性 skill（已存在 ✅）
+  - 建议 Phase 2.2 与 Orchestrator 自适应一并实施
+- **状态**：exploration（已纳入 ADR-0003 §6.2，Phase 2.2 实施）
 
 ---
 

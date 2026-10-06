@@ -336,7 +336,131 @@ Grill 更新 mission.md:
 **用户原话**：
 > "在具体执行过程中 orchestrator 需要根据其他代理的反馈要能修改任务。不然任务在执行的时候遇到和 plan 不一致的情况还是硬做那就完蛋了"
 
-### 6.2 三种调整场景
+### 6.2 愿景守护机制（防偏离初衷）
+
+**用户原话**：
+> "因为现在很多时候人也不知道怎么选，那么可以用 lazypack 中的设定，比如多 AI 裁决。但是在修改前一定再加一道验证，就是和人最初访谈中的愿景是否有冲突，如果有这种重大冲突的，必须问人的意见（可以用比如一些 skill 更好说明，比如 eli5，wait-what，archify 等等）"
+
+**核心机制**：在执行任何重大调整前，增加**愿景一致性验证**
+
+#### 愿景冲突检测流程
+
+```
+Worker 提出重大调整（修改断言 / 改架构 / 取消 Mission）
+  ↓
+【步骤 1】愿景冲突检测
+  ├─ 读取初始访谈记录（mission-kickoff.md）
+  ├─ 读取 mission.md（用户的核心目标）
+  ├─ 用 AI 判断：提议的改动是否与初衷冲突？
+  └─ 分类：重大冲突 / 轻微冲突 / 无冲突
+  ↓
+如果存在重大冲突 → 跳转到【人工裁决】
+  ↓
+如果无重大冲突，但人不知道怎么选 → 【多 AI 裁决】
+  ↓
+【步骤 2】多 AI 裁决（§9 讨论章程）
+  ├─ 第一轮：3+ 个 AI 独立提案（互不可见）
+  ├─ 第二轮：互评（每人至少驳一人、认一人）
+  └─ 第三轮：修订后投票 → 多数方案胜出
+  ↓
+如果僵局 → 回到【人工裁决】
+  ↓
+【步骤 3】解释性说明（辅助人类理解）
+  ├─ /eli5：用简单语言解释技术问题
+  ├─ wait-what：质疑提案的隐含假设
+  └─ archify：可视化架构影响
+  ↓
+最终裁决 → 更新计划 → 重新调度
+```
+
+#### 愿景冲突判定标准
+
+| 冲突等级 | 定义 | 处理方式 |
+|----------|------|----------|
+| **重大冲突** | 改动违背了用户明确表达的目标、边界或核心约束 | 必须问人，不得自动执行 |
+| **轻微冲突** | 改动调整了实现细节，但核心目标不变 | 可以多 AI 裁决，结果告知用户 |
+| **无冲突** | 改动是技术调整，不影响用户愿景 | Orchestrator 自动执行 |
+
+**示例**：
+
+| 提议的改动 | 原始愿景 | 冲突判定 |
+|-----------|----------|----------|
+| "VAL-002 无法实现，建议降低要求" | 用户访谈中强调"密码错误必须显示清晰提示" | ❌ 重大冲突 → 必须问人 |
+| "建议改用 RSA 而非对称密钥" | 用户未指定加密方式，只说"要安全" | ✅ 无冲突 → Orchestrator 自动执行 |
+| "建议拆分为两个 Feature" | 用户要求"一次性完成登录功能" | ⚠️ 轻微冲突 → 多 AI 裁决 |
+
+#### 多 AI 裁决机制（lazypack-discipline §9）
+
+**来源**：`lazypack-discipline` DECISIONS.md §9 多 AI 讨论章程
+
+**适用场景**：
+- 人类不确定如何选择
+- 需要多角度评估
+- 技术方案存在争议
+
+**流程**：
+
+```typescript
+// 第一轮：独立提案（3+ 个 AI 互不可见）
+const proposals = await parallel([
+  () => agent('参与者 1：为问题提出解决方案', { phase: '第一轮' }),
+  () => agent('参与者 2：为问题提出解决方案', { phase: '第一轮' }),
+  () => agent('参与者 3：为问题提出解决方案', { phase: '第一轮' })
+]);
+
+// 第二轮：互评（每人至少驳一人、认一人）
+const reviews = await parallel(
+  proposals.map((p, i) => () =>
+    agent(`评审其他提案，必须至少驳一人、认一人`, { phase: '第二轮' })
+  )
+);
+
+// 第三轮：修订后投票
+const votes = await parallel(
+  proposals.map((p, i) => () =>
+    agent(`基于评审意见修订提案并投票`, { phase: '第三轮' })
+  )
+);
+
+// 统计结果：多数方案胜出，僵局交用户裁决
+const winner = tallyVotes(votes);
+```
+
+**留档要求**：
+- 每人每轮原文 + 投票结果 + 裁决
+- 存入 `.lazyforeman/missions/<mission-name>/decisions/<date>-<issue>/`
+
+#### 解释性说明（辅助人类理解）
+
+当需要人工裁决时，提供三层说明：
+
+```typescript
+// 1. eli5: 用简单语言解释问题
+const eli5 = await callSkill('eli5', {
+  topic: issue.description
+});
+// 输出示例：
+// "后端就像一个保险箱，它不会告诉你是密码错了还是账号错了，
+//  因为这样小偷就能猜出哪个账号存在。但是用户希望看到清楚的提示，
+//  这就产生了矛盾。"
+
+// 2. wait-what: 质疑提案的隐含假设
+const critique = await callSkill('wait-what', {
+  proposal: proposedSolution.description
+});
+// 输出示例：
+// "提案假设后端可以轻易修改，但如果后端是第三方服务呢？
+//  提案假设用户愿意接受模糊提示，但访谈中用户明确要求清晰反馈。"
+
+// 3. archify: 可视化架构影响
+const diagram = await callSkill('archify', {
+  type: 'sequence',
+  description: proposedSolution.architectureImpact
+});
+// 输出示例：生成时序图，展示修改后的登录流程
+```
+
+### 6.3 三种调整场景
 
 #### 场景 1：Worker 发现依赖缺失
 
@@ -350,7 +474,9 @@ Worker handoff.discoveredIssues:
     "suggestedFix": "需要先实现后端接口"
   }
   ↓
-Orchestrator 处理:
+【愿景冲突检测】无冲突（技术依赖，不影响用户愿景）
+  ↓
+Orchestrator 自动处理:
   1. 调用 Planner 生成新 Feature (feat-002: 后端接口)
   2. 更新 feat-001.preconditions = ["feat-002"]
   3. 重新调度: feat-002 → feat-001
@@ -368,9 +494,17 @@ Worker handoff.skillFeedback.deviations:
     "why": "保持与现有认证体系一致"
   }
   ↓
+【愿景冲突检测】轻微冲突（用户未指定加密方式，但强调"与现有系统兼容"）
+  ↓
+【多 AI 裁决】（如果人不确定）
+  ├─ 提案 1: 使用 RSA（保持一致）
+  ├─ 提案 2: 使用对称密钥（更简单）
+  └─ 投票结果: 2:1 支持 RSA
+  ↓
 Orchestrator 处理:
   1. 调用 Planner 更新 mission.md 架构备注
   2. 继续执行，无需阻塞
+  3. 留档决策过程到 .lazyforeman/missions/<name>/decisions/
 ```
 
 #### 场景 3：Worker 挑战契约（见 IDEA-261006-12）
@@ -385,48 +519,50 @@ Worker handoff.discoveredIssues:
     "suggestedFix": "修改 VAL-002 或增加后端支持"
   }
   ↓
-Orchestrator 处理:
-  1. 暂停 workflow
-  2. 调用 recv() 等待用户裁决:
-     - 选项 1: 修改 VAL-002（降低要求）
-     - 选项 2: 增加 feat-006（后端支持详细错误码）
-     - 选项 3: 取消 Mission
-  3. 根据决定更新计划并重新调度
+【步骤 1】愿景冲突检测
+  ├─ 读取 mission-kickoff.md: "用户强调密码错误必须显示清晰提示"
+  ├─ 读取 mission.md: "VAL-002: 密码错误时显示'密码错误'"
+  └─ 判定: ❌ 重大冲突（降低要求违背用户明确表达的核心目标）
+  ↓
+【步骤 2】解释性说明
+  ├─ eli5: "后端像保险箱，不会说密码错还是账号错，但用户要清晰提示"
+  ├─ wait-what: "假设后端可以轻易修改，但如果是第三方服务呢？"
+  └─ archify: [生成时序图展示两种方案的流程差异]
+  ↓
+【步骤 3】人工裁决（必须问人）
+  ├─ 展示冲突分析 + 解释性说明
+  ├─ 提供选项:
+  │   1. 修改 VAL-002（降低要求，与愿景冲突）
+  │   2. 增加 feat-006（后端支持详细错误码）
+  │   3. 取消 Mission（重新规划）
+  └─ 用户选择 2
+  ↓
+Planner 更新 features.json:
+  {
+    "id": "feat-006",
+    "name": "后端返回详细登录错误码",
+    "fulfills": [],  // 不直接满足 VAL-*，但支撑 VAL-002
+    "preconditions": []
+  }
+  ↓
+Orchestrator: "重新调度，feat-006 → feat-005"
 ```
 
-### 6.3 实现要点
+### 6.4 实现要点
 
 **依赖**：
 - Handoff schema 已定义 `discoveredIssues`（Phase 1 ✅）
 - Planner agent 支持增量更新（Phase 2.2）
+- 愿景冲突检测 AI（Phase 2.2）
+- 多 AI 裁决机制（Phase 2.2，依据 lazypack-discipline §9）
+- 解释性说明 skills（eli5 / wait-what / archify，已存在 ✅）
 - recv() 人机交互原语（Phase 2.2，ADR-0001 未包含）
 
-**算法**：
-```typescript
-export async function handleDiscoveredIssues(
-  handoff: Handoff,
-  missionDir: string
-): Promise<OrchestratorAction> {
-  const blocking = handoff.discoveredIssues.filter(
-    i => i.severity === 'blocking'
-  );
-  
-  for (const issue of blocking) {
-    if (issue.description.includes('缺少')) {
-      return { type: 'add_feature', suggestedFix: issue.suggestedFix };
-    }
-    if (issue.description.includes('无法实现')) {
-      return { type: 'challenge_contract', issue };
-    }
-  }
-  
-  return { type: 'continue' };
-}
-```
+**算法**：见 §6.2 中的完整实现示例（包含愿景冲突检测、多 AI 裁决、解释性说明三层机制）
 
 ---
 
-## 7. 完整流程图
+## 7. 完整流程图（更新版）
 
 ```
 用户
@@ -460,10 +596,37 @@ Worker 执行
   ↓
   
 Orchestrator 读取 handoff
-  ├─ 无阻塞问题 → 继续下一个 Feature
-  ├─ 缺少依赖 → Planner 增加 Feature → 重新调度
-  ├─ 架构偏离 → Planner 更新 mission.md → 继续
-  └─ 挑战契约 → recv() 等待用户裁决 → 调整
+  ↓
+【新增】愿景冲突检测
+  ├─ 读取 mission-kickoff.md（初始愿景）
+  ├─ 读取 mission.md（当前目标）
+  ├─ AI 判断：提议的改动是否与初衷冲突？
+  └─ 分类：重大冲突 / 轻微冲突 / 无冲突
+  ↓
+  
+分支处理：
+  ├─【无冲突】技术调整
+  │   ├─ 缺少依赖 → Planner 增加 Feature → 重新调度
+  │   ├─ 架构偏离 → Planner 更新 mission.md → 继续
+  │   └─ 无阻塞 → 继续下一个 Feature
+  │
+  ├─【轻微冲突】多 AI 裁决（如果人不确定）
+  │   ├─ 询问用户：自己决定 OR 多 AI 讨论
+  │   ├─ 如选多 AI：
+  │   │   ├─ 第一轮：3+ AI 独立提案
+  │   │   ├─ 第二轮：互评（至少驳一人、认一人）
+  │   │   └─ 第三轮：投票 → 多数胜出
+  │   ├─ 僵局 → 回到人工裁决
+  │   └─ 留档决策过程
+  │
+  └─【重大冲突】必须人工裁决
+      ├─ 解释性说明：
+      │   ├─ eli5：简单语言解释问题
+      │   ├─ wait-what：质疑提案假设
+      │   └─ archify：可视化架构影响
+      ├─ 展示冲突分析
+      ├─ 用户选择：修改断言 / 增加任务 / 取消 Mission
+      └─ 根据决定更新计划
   ↓
   
 所有 Feature 完成
