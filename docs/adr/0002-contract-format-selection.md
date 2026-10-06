@@ -1,4 +1,4 @@
-# ADR 0001: 契约格式选择（BMAD vs Spec Kit）
+# ADR 0002: 契约格式选择（BMAD vs Spec Kit）
 
 ## 状态
 
