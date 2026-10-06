@@ -36,3 +36,4 @@
 |---|---|---|---|---|
 | docs/ideas/inbox.md | 来源材料 | exploration | 团队与规划者 / 讨论产生新想法时 | 规划研讨碎片想法池，非现行基准 |
 | docs/interviews/ | 来源材料 | reference | 规划者 / 研讨结束时 | 结构化访谈纪要归档目录 |
+| docs/interviews/2026-10-06-mission-mode-kickoff.md | 来源材料 | reference | 规划者 / 研讨结束时 | 立项研讨纪要：droid mission 机制逆向、技术栈定案（omp + DBOS + BMAD）、缺口清单与命名决策；已脱敏本机路径 |
