@@ -132,6 +132,109 @@
   - 可在 Phase 1.5 或 Phase 2 引入（与 Worker Adapter 架构一起）
 - **状态**：exploration（调研进行中，workflow ID: wxdl59cdu）
 
+### [IDEA-261006-10] Grill-with-docs 深度访谈机制
+- **提出时间与来源**：2026-10-06（契约格式设计访谈 §4，来源 `docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md`）
+- **核心设想与场景**：前期 Grill 必须彻底，不是简单问"你要什么"，而是五维深挖：①目标澄清（解决什么问题、谁用、怎么用）；②边界确认（做什么、不做什么、依赖什么）；③技术约束（现有架构、技术债、性能/安全要求）；④验收标准细化（具体怎么验证、自动化还是人工、边界情况）；⑤风险识别（可能出问题的地方、不确定的地方、预先调研的内容）。在 Grill 过程中调用 Wayfinder 探索现有代码，输出高质量的 `mission.md`（包含背景、边界、架构约束、风险）。
+- **技术细节**：
+  - Grill-with-docs 集成 Wayfinder（如 CodeGraph、`/understand-codebase`）
+  - 对话中实时验证用户陈述（"你说后端有 bcrypt"→ 调 Wayfinder 确认）
+  - 输出 `mission.md` 包含五个必需章节：背景、目标、边界、架构约束、风险
+  - 质量门禁：mission.md 必须明确标注"做什么 ✅"和"不做什么 ❌"
+- **收益**：
+  - 前期彻底胜过执行中修补（避免 Worker 发现计划错误后返工）
+  - 高质量 mission.md 提升后续自动提取断言的准确率
+  - 显式的风险识别可预先调研，避免执行中阻塞
+- **未立项原因/权衡**：
+  - 依赖契约格式先定案（IDEA-261006-06 已选 C：Lazyforeman 自研格式，见 ADR-0003）
+  - Grill 深度与耗时成正比，需平衡彻底性与效率
+  - Wayfinder 集成需要代码图谱能力（如 CodeGraph `.codegraph/` 索引）
+- **状态**：exploration（契约格式已定案，可进入 Phase 2.1 实施）
+
+### [IDEA-261006-11] Orchestrator 动态计划调整
+- **提出时间与来源**：2026-10-06（契约格式设计访谈 §5，来源 `docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md`）
+- **核心设想与场景**：Orchestrator 读取 Worker handoff 的 `discoveredIssues`，根据问题类型动态调整计划。三种场景：①缺少依赖（blocking）→ 调用 Planner 生成新 Feature，更新依赖图，重新调度；②架构假设错误（non_blocking）→ 调用 Planner 更新 mission.md，继续执行；③挑战契约（blocking + 无法实现）→ 暂停 workflow，调用 recv() 等待用户裁决（修改断言 or 增加任务 or 取消 Mission），根据决定调整后重新调度。
+- **技术细节**：
+  ```typescript
+  // src/orchestrator/issue-handler.ts
+  export async function handleDiscoveredIssues(
+    handoff: Handoff
+  ): Promise<OrchestratorAction> {
+    const blocking = handoff.discoveredIssues.filter(
+      i => i.severity === 'blocking'
+    );
+    // 分类：add_feature / update_mission / challenge_contract
+  }
+  
+  // src/orchestrator/plan-updater.ts
+  export async function updatePlan(
+    action: OrchestratorAction,
+    missionDir: string
+  ): Promise<void> {
+    // 调用 Planner agent 更新 features.json / mission.md
+  }
+  
+  // src/orchestrator/scheduler.ts
+  export async function reschedule(missionDir: string): Promise<void> {
+    // 重新计算依赖图，找出可执行的 Feature
+  }
+  ```
+- **关键能力**：
+  - 读取 `handoff.discoveredIssues` 并分类
+  - 动态更新 `features.json` / `mission.md`（增量更新，非全量重写）
+  - 重建依赖图（DAG）并按优先级排序
+  - 人工裁决接口（recv() 或等效实现）
+- **收益**：
+  - 避免 Worker 盲目执行错误计划（"任务在执行的时候遇到和 plan 不一致的情况还是硬做那就完蛋了"）
+  - 计划可以根据实际情况动态调整，而非一成不变
+  - 严重偏离时强制人工介入，避免烧钱
+- **未立项原因/权衡**：
+  - 依赖 Handoff schema 已定义 `discoveredIssues` 字段（Phase 1 已实现 ✅）
+  - 需要 Planner agent 支持增量更新（而非全量重写）
+  - recv() 人机交互机制需要 DBOS `ctx.recv()` 或自建等效实现（ADR-0001 自建层未包含此能力）
+  - 复杂度高，建议 Phase 2.2 实施
+- **状态**：exploration（Phase 1 已有 handoff.discoveredIssues 接口，Phase 2.2 实现处理器）
+
+### [IDEA-261006-12] Worker 挑战契约机制（recv 等待人工裁决）
+- **提出时间与来源**：2026-10-06（契约格式设计访谈 §5.2 场景 3，来源 `docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md`）
+- **核心设想与场景**：Worker 发现断言无法实现时（如"密码错误时显示提示"，但后端不区分邮箱错误 vs 密码错误），可以在 handoff 中标记 `severity: blocking` + 描述"VAL-002 无法实现"，触发 Orchestrator 暂停 workflow，调用 `recv()` 等待用户裁决。用户可选：①修改断言（降低要求）；②增加新任务（如后端支持详细错误码）；③取消 Mission。裁决后 Orchestrator 更新计划并重新调度。这是"契约可挑战"的具体实现，避免 Worker 盲目执行错误计划。
+- **技术细节**：
+  ```typescript
+  // Worker 产出 handoff
+  {
+    "discoveredIssues": [
+      {
+        "severity": "blocking",
+        "description": "VAL-002 无法实现：后端不区分邮箱/密码错误",
+        "suggestedFix": "修改 VAL-002 或增加后端支持"
+      }
+    ]
+  }
+  
+  // Orchestrator 处理
+  const userDecision = await recv({
+    question: `${issue.description}\n\n你想怎么做？`,
+    options: ['修改断言', '增加新任务', '取消 Mission']
+  });
+  ```
+- **触发条件**：
+  - `severity: 'blocking'`
+  - 描述包含"无法实现"或"不可行"关键词
+  - Worker 明确标记为需要人工裁决
+- **裁决选项**：
+  - 修改断言（降低要求或调整验证方式）
+  - 增加新任务（修复阻塞问题）
+  - 取消 Mission（需求不合理）
+- **收益**：
+  - Worker 有权挑战不合理的契约
+  - 避免盲目执行导致的资源浪费
+  - 人机协作：机器执行，人类决策
+- **未立项原因/权衡**：
+  - 依赖 IDEA-261006-11 的 Orchestrator 动态调整能力
+  - 依赖 recv() 人机交互原语（DBOS `ctx.recv()` 或自建等效实现，ADR-0001 封顶条款未包含此能力）
+  - 需要定义挑战契约的触发条件（什么算"无法实现"）与裁决选项格式
+  - 建议 Phase 2.2 与 Orchestrator 自适应一并实施
+- **状态**：exploration（与 IDEA-261006-11 强关联，Phase 2.2 实施）
+
 ---
 
 ## 2. 已采纳与已归档想法 (Promoted / Archived Ideas)

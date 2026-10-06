@@ -43,9 +43,11 @@
 | docs/interviews/ | 来源材料 | reference | 规划者 / 研讨结束时 | 结构化访谈纪要归档目录 |
 | docs/interviews/2026-10-06-mission-mode-kickoff.md | 来源材料 | reference | 规划者 / 研讨结束时 | 立项研讨纪要：droid mission 机制逆向、技术栈定案（omp + DBOS + BMAD）、缺口清单与命名决策；已脱敏本机路径 |
 | docs/adr/0001-phase1-durable-engine-selection.md | 设计与决策 | current | 规划者 / 技术栈冲突时 | Phase 1 持久化引擎选型：自建 SQLite 持久层（step journal + workflow runner）；DBOS 作为可选升级路径；封顶条款防止功能蔓延 |
-| docs/adr/0002-contract-format-selection.md | 设计与决策 | wip | 规划者 / Phase 2 启动前 | 契约格式选择（BMAD vs Spec Kit）；提议中，待裁决 |
+| docs/adr/0002-contract-format-selection.md | 设计与决策 | superseded | 规划者 / ADR-0003 替代时 | 契约格式选择（BMAD vs Spec Kit）；编号冲突问题已识别，被 ADR-0003 替代 |
+| docs/adr/0003-contract-format-and-lazy-workflow.md | 设计与决策 | current | 规划者 / Phase 2 启动前 | 契约格式与 Lazy 工作流设计：裁决方案 C（自研格式），定义 mission.md/assertions.json/features.json 三层结构，Grill-with-docs 五维深挖机制，Orchestrator 动态计划调整（discoveredIssues 处理）；解决 IDEA-261006-06；为 Phase 2.1/2.2 提供实施蓝图 |
 | src/ | 现状与使用说明 | current | 执行者 / 功能完成时 | Phase 1 运行时层实现：自建 step journal + workflow runner；873 行代码（封顶条款已遵守）；36 个测试全通过 |
 | test/ | 验证与观察 | current | 执行者 / 功能完成时 | Phase 1 测试套件：崩溃恢复、失败重放、checkpoint 不变量；7 个测试文件，36 个测试用例 |
 | docs/interviews/2026-10-06-droid-mission-deep-analysis.md | 来源材料 | reference | 分析团队 / 深度摸排完成时 | 12 个 Agent 全面摸排报告：10 大关键设计模式、5 个反模式、实现缺口清单、分阶段路线图（8-12 周）；基于 mission mis_6a05f5e2 的 288 个文件、89.2 万 tokens 深度分析 |
+| docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md | 来源材料 | reference | 规划者 / 研讨结束时 | 契约格式与编排器自适应设计访谈纪要：BMAD vs Spec Kit vs 自研对比，Lazy 契约工作流六阶段，Grill-with-docs 五维深挖，Orchestrator 动态调整三场景，Worker 挑战契约机制；决策 ADR-0003，产出 IDEA-261006-10/11/12 |
 
 
