@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# lazypack:start block=pre-commit-hook src=DECISIONS.md@0.4.0 gen=2026-10-06 input=sha256:8f4e9c1a2b3d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f fp=sha256:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+# lazypack:preset id=ts-biome-vitest version=1.0.0
+#   format: wired:preset:recommended
+#   lint: wired:preset:recommended
+#   type: wired:preset:recommended
+#   test: wired:preset:recommended
+
+set -euo pipefail
+
+echo "🔍 Running quality gates..."
+
+# 获取暂存的 .ts/.tsx 文件
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
+
+if [ -z "$STAGED_TS_FILES" ]; then
+  echo "✅ No TypeScript files staged, skipping checks"
+  exit 0
+fi
+
+# Format check
+echo "📐 Checking format..."
+pnpm exec biome format $STAGED_TS_FILES || {
+  echo "❌ Format check failed. Run: pnpm run format"
+  exit 1
+}
+
+# Lint check
+echo "🔎 Checking lint..."
+pnpm exec biome lint $STAGED_TS_FILES || {
+  echo "❌ Lint check failed. Run: pnpm run lint:fix"
+  exit 1
+}
+
+# Type check
+echo "🔧 Checking types..."
+pnpm exec tsc --noEmit || {
+  echo "❌ Type check failed"
+  exit 1
+}
+
+# Test (只在 src/ 或 test/ 变更时运行)
+if echo "$STAGED_TS_FILES" | grep -qE '(src/|test/)'; then
+  echo "🧪 Running tests..."
+  pnpm exec vitest run || {
+    echo "❌ Tests failed"
+    exit 1
+  }
+fi
+
+echo "✅ All checks passed"
+# lazypack:end block=pre-commit-hook

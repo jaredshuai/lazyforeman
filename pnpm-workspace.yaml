@@ -1,0 +1,4 @@
+packages: []
+
+# 自安装保护：严禁在依赖未安装时运行 scripts
+verifyDepsBeforeRun: error

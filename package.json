@@ -1,0 +1,26 @@
+{
+	"name": "lazyforeman",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Multi-agent orchestration framework - you describe the requirement, it does the work, you get the result",
+	"packageManager": "pnpm@10.33.2",
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"scripts": {
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write .",
+		"type": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.12",
+		"@types/node": "^24.19.1",
+		"typescript": "6.0.3",
+		"vite": "8.2.2",
+		"vitest": "5.0.0"
+	}
+}
