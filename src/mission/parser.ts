@@ -391,3 +391,37 @@ export class MarkdownMissionParser implements MissionParser {
 export function createMissionParser(): MissionParser {
 	return new MarkdownMissionParser();
 }
+
+/**
+ * Convenience function to parse and validate mission markdown
+ *
+ * @param markdown - Raw mission.md content
+ * @returns Validation result with parsed document (if valid)
+ */
+export function parseMissionMarkdown(markdown: string): ValidationResult & {
+	document?: MissionDocument;
+} {
+	const parser = createMissionParser();
+
+	try {
+		const document = parser.parse(markdown);
+		const validationResult = parser.validate(document);
+
+		return {
+			...validationResult,
+			document,
+		};
+	} catch (error) {
+		return {
+			valid: false,
+			violations: [
+				{
+					field: "markdown",
+					rule: "parsing",
+					message:
+						error instanceof Error ? error.message : "Failed to parse markdown",
+				},
+			],
+		};
+	}
+}
