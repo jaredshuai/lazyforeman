@@ -49,5 +49,27 @@
 | test/ | 验证与观察 | current | 执行者 / 功能完成时 | Phase 1 测试套件：崩溃恢复、失败重放、checkpoint 不变量；7 个测试文件，36 个测试用例 |
 | docs/interviews/2026-10-06-droid-mission-deep-analysis.md | 来源材料 | reference | 分析团队 / 深度摸排完成时 | 12 个 Agent 全面摸排报告：10 大关键设计模式、5 个反模式、实现缺口清单、分阶段路线图（8-12 周）；基于 mission mis_6a05f5e2 的 288 个文件、89.2 万 tokens 深度分析 |
 | docs/interviews/2026-10-06-contract-format-and-orchestrator-design.md | 来源材料 | reference | 规划者 / 研讨结束时 | 契约格式与编排器自适应设计访谈纪要：BMAD vs Spec Kit vs 自研对比，Lazy 契约工作流六阶段，Grill-with-docs 五维深挖，Orchestrator 动态调整三场景，Worker 挑战契约机制；决策 ADR-0003，产出 IDEA-261006-10/11/12 |
+| docs/phase-2.1-architecture.md | 设计与决策 | current | 架构设计者 / Phase 2.1 完成时 | Phase 2.1 契约层架构设计：Mission Parser/Investigator/Planner/Coverage Validator 四大模块，Wayfinder 集成，工作流编排，实现计划（10 个任务，92h 估算）；基于 ADR-0003 与 Phase 1 基础设施分析 |
+| docs/phase-2.1-wayfinder-implementation.md | 设计与决策 | current | 架构设计者 / Phase 2.1 完成时 | Wayfinder 实现细节：codegraph/codebase-memory MCP 工具调用策略，缓存机制，fallback 模式，工具链编排 |
+| docs/templates/mission.md | 规则与术语 | current | 规划者 / Phase 2.1 完成时 | Mission 文档标准模板：frontmatter + Background/Goal/Boundary/Success Criteria/Architecture Constraints/Risks 六大结构化章节；符合 ADR-0003 质量门禁要求 |
+| src/mission/parser.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Mission Parser 实现：解析 mission.md（frontmatter + 结构化章节），质量门禁验证，生成 MissionDocument 类型；支持 ADR-0003 模板格式 |
+| src/types/mission-document.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | MissionDocument 类型定义：mission.md 解析后的结构化类型，包含 background/goal/boundary/successCriteria/architectureConstraints/risks 字段 |
+| src/types/assertion-generator.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Assertion 生成相关类型：AssertionType（deterministic/semantic），AssertionStatus，AssertionInput 等；用于 Investigator Agent |
+| src/types/wayfinder.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Wayfinder 类型定义：WayfinderContext（架构快照）、ArchitectureSnapshot、CodePattern 等；用于缓存 codegraph/codebase-memory 探索结果 |
+| src/investigator/agent.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Investigator Agent 实现：从 MissionDocument 提取断言，生成 VAL-* 编号，分类（deterministic/semantic），持久化到 SQLite + assertions.json；集成 Wayfinder 架构探索 |
+| src/planner/agent.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Planner Agent 实现：根据 mission + assertions 生成 features，构建依赖 DAG，分配断言覆盖（fulfills 数组），持久化到 SQLite + features.json；集成 Wayfinder 代码搜索 |
+| src/validator/coverage-validator.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Coverage Validator 实现：预工作硬门禁，验证 100% 断言覆盖（无孤儿、无重复认领），生成结构化错误报告，阻塞不合规计划；符合 ADR-0003 §2.2 契约先行原则 |
+| src/wayfinder/client.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Wayfinder Client 实现：codegraph_explore/codebase-memory MCP 工具封装，架构探索，代码搜索，缓存管理（wayfinder_cache 表），fallback 模式 |
+| src/workflows/mission.ts | 现状与使用说明 | current | 执行者 / Phase 2.1 完成时 | Mission Workflow 实现：完整契约层编排（parseMission → extractAssertions → generateFeatures → validateCoverage → executeFeatures），集成 Phase 1 singleFeatureWorkflow，崩溃恢复支持 |
+| test/mission/parser.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Mission Parser 单元测试：解析有效/无效 mission.md，质量门禁验证，错误处理；14 个测试用例 |
+| test/investigator/agent.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Investigator Agent 单元测试：断言提取，VAL-* 编号生成，类型分类，mock Wayfinder；18 个测试用例 |
+| test/investigator/integration.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Investigator 集成测试：SQLite 持久化，JSON 文件写入，Wayfinder 缓存；12 个测试用例 |
+| test/planner/agent.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Planner Agent 单元测试：feature 生成，DAG 构建，循环检测，fulfills 数组验证；22 个测试用例 |
+| test/planner/integration.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Planner 集成测试：SQLite 持久化，JSON 文件写入，DAG 拓扑排序；15 个测试用例 |
+| test/validator/coverage-validator.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Coverage Validator 单元测试：孤儿断言检测，重复认领检测，100% 覆盖验证，错误消息格式；16 个测试用例 |
+| test/validator/integration.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Coverage Validator 集成测试：SQLite 审计日志，violation 文件写入；8 个测试用例 |
+| test/wayfinder/client.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Wayfinder Client 单元测试：架构探索，代码搜索，缓存机制，fallback 模式，mock MCP 工具；20 个测试用例 |
+| test/workflows/mission.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Mission Workflow 单元测试：step 幂等性，崩溃恢复，coverage gate 阻塞；18 个测试用例 |
+| test/workflows/mission-integration.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Mission Workflow 端到端测试：完整 mission 执行（mission.md → assertions → features → handoffs），DAG 顺序验证，progress_log 正确性；12 个测试用例 |
 
 

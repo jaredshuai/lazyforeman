@@ -201,7 +201,7 @@ DBOS 自动 checkpoint 保证不重复不丢失
 
 详见 `docs/interviews/2026-10-06-droid-mission-deep-analysis.md` §五。
 
-### Phase 1: 地基（当前）
+### Phase 1: 地基（✅ 已完成并稳定）
 
 **目标**：单 feature 最小闭环 + 崩溃恢复验证
 
@@ -219,11 +219,48 @@ DBOS 自动 checkpoint 保证不重复不丢失
 - omp 测试策略：默认 mock，`USE_REAL_OMP=true` opt-in 真实调用
 - CLI 暂不提供（Phase 2），验收通过 `pnpm run test`
 
-**工作量**：2-3 周
+**实际交付时间**：2026-10-06
 
-### Phase 2-5
+### Phase 2.1: 契约层（✅ 已完成）
 
-见分析报告详细路线图。
+**目标**：mission.md → assertions.json → features.json 工作流
+
+**关键交付**：
+- Mission Parser：解析 mission.md，支持 frontmatter + 结构化验证
+- SQLite Schema 扩展：assertions 表新增 5 个字段（type/claimed_by/mission_id/source_index/wayfinder_context），新增 missions_metadata/wayfinder_cache/coverage_validations 表
+- Wayfinder Client：codegraph/codebase-memory MCP 工具集成，架构探索与代码搜索
+- Investigator Agent：从 mission 提取断言，分类（deterministic/semantic），生成 VAL-* 编号
+- Planner Agent：生成 features 并构建依赖 DAG，断言覆盖分配
+- Coverage Validator：预工作硬门禁，确保 100% 断言覆盖（无孤儿、无重复认领）
+- Mission Workflow：完整编排（parse → investigate → plan → validate → execute）
+
+**测试覆盖**：
+- 18 个测试文件
+- 155 个测试用例全部通过
+- 单元测试 + 集成测试 + 端到端测试
+
+**架构文档**：
+- `docs/phase-2.1-architecture.md`：完整架构设计
+- `docs/phase-2.1-wayfinder-implementation.md`：Wayfinder 集成实现
+- `docs/templates/mission.md`：mission 模板
+
+**实际交付时间**：2026-10-06
+
+### Phase 2.2: Lazy 契约工作流增强（规划中）
+
+**目标**：动态计划调整 + Grill-with-docs 深挖
+
+**关键特性**（基于 ADR-0003）：
+- Grill-with-docs 五维深挖（背景/边界/约束/风险/成功标准）
+- Worker 契约挑战机制（discoveredIssues → Orchestrator 处理）
+- 动态计划调整（新增 feature/移除过时断言/重构依赖 DAG）
+- send()/recv() 信号机制（人工介入点）
+
+**预计工作量**：2-3 周
+
+### Phase 3-5
+
+见分析报告详细路线图（并行编排、Advisor 层、生产化）。
 
 ---
 
@@ -297,4 +334,4 @@ lazyforeman/
 
 **最后更新**：2026-10-06  
 **维护者**：项目负责人  
-**下次更新时机**：Phase 1 完成后（补充实测架构图与性能数据）
+**下次更新时机**：Phase 2.2 启动前（补充 Grill-with-docs 设计与动态计划调整机制）
