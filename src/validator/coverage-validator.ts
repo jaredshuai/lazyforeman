@@ -176,13 +176,24 @@ export class DefaultCoverageValidator implements CoverageValidator {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
+		// Handle both Map and plain object cases (plain object from journal deserialization)
+		let duplicateClaimsArray: Array<[string, string[]]>;
+		if (result.duplicateClaims instanceof Map) {
+			duplicateClaimsArray = Array.from(result.duplicateClaims.entries());
+		} else {
+			// Plain object from JSON deserialization
+			duplicateClaimsArray = Object.entries(
+				result.duplicateClaims as Record<string, string[]>,
+			);
+		}
+
 		stmt.run(
 			missionId,
 			result.validationType,
 			result.totalAssertions,
 			result.claimedAssertions,
 			JSON.stringify(result.orphanAssertions),
-			JSON.stringify(Array.from(result.duplicateClaims.entries())),
+			JSON.stringify(duplicateClaimsArray),
 			result.passed ? 1 : 0,
 			result.validatedAt,
 		);
