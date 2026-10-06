@@ -21,7 +21,11 @@ describe("DefaultIssuesHandler", () => {
 	/**
 	 * 创建必要的 mission、feature 和 handoff 记录以满足外键约束
 	 */
-	function setupTestData(featureId: string, handoffId: string, missionId = "mission-001"): void {
+	function setupTestData(
+		featureId: string,
+		handoffId: string,
+		missionId = "mission-001",
+	): void {
 		// 创建 mission
 		const missionStmt = db.prepare(`
       INSERT OR IGNORE INTO missions (id, name, description, status, created_at, updated_at)
@@ -80,7 +84,7 @@ describe("DefaultIssuesHandler", () => {
 				reasoning: "Mock adjustment",
 			}),
 			handleInfeasibleAssertion: async () => ({
-				action: "assertions_modified" as const,
+				action: "assertion_modified" as const,
 				reasoning: "Mock adjustment for infeasible assertion",
 			}),
 		};

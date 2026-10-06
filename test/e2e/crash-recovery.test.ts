@@ -12,25 +12,22 @@
  * - State consistency after recovery
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { randomBytes } from "node:crypto";
+import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mkdir, rm } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openDatabase, type SqliteDb } from "../../src/db/connection.js";
+import {
+	DefaultGrillAgent,
+	type GrillAgent,
+	type LLMClient,
+} from "../../src/grill/agent.js";
+import type { GrillMessage } from "../../src/grill/types.js";
 import { SqliteStepJournal } from "../../src/runtime/step-journal.js";
 import type { WorkflowContext } from "../../src/runtime/workflow-runner.js";
 import { runStep } from "../../src/runtime/workflow-runner.js";
-import {
-	DefaultGrillAgent,
-	type LLMClient,
-	type GrillAgent,
-} from "../../src/grill/agent.js";
-import type { GrillMessage } from "../../src/grill/types.js";
-import {
-	executeMissionWorkflow,
-	type MissionWorkflowConfig,
-} from "../../src/workflows/mission.js";
+import type { MissionWorkflowConfig } from "../../src/workflows/mission.js";
 
 describe("Phase 2.2 Crash Recovery", () => {
 	let db: SqliteDb;
@@ -56,7 +53,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 			// Mock LLM that simulates crash after 2 turns
 			let turnCount = 0;
 			const mockLLM: LLMClient = {
-				chat: async (messages: GrillMessage[]) => {
+				chat: async (_messages: GrillMessage[]) => {
 					turnCount++;
 
 					if (turnCount === 3) {
@@ -104,7 +101,9 @@ describe("Phase 2.2 Crash Recovery", () => {
 			const savedSession = await grillAgent.loadSession(sessionId);
 			expect(savedSession).not.toBeNull();
 			expect(savedSession?.messages).toHaveLength(3);
-			expect(savedSession?.messages[0].content).toBe("我想实现一个用户登录功能");
+			expect(savedSession?.messages[0].content).toBe(
+				"我想实现一个用户登录功能",
+			);
 
 			// Step 3: Simulate crash and recovery
 			// Create new agent instance (simulating restart)
@@ -184,7 +183,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 			const missionId = "crash-test-mission-001";
 			const workflowId = "crash-workflow-001";
 
-			const config: MissionWorkflowConfig = {
+			const _config: MissionWorkflowConfig = {
 				missionId,
 				missionMarkdown: validMissionMarkdown,
 				outputDir,
@@ -198,61 +197,56 @@ describe("Phase 2.2 Crash Recovery", () => {
 			// Step 1: Start workflow (will complete parse step)
 			let crashAfterParse = false;
 
-			try {
-				// Simulate crash by intercepting after first step
-				await runStep(ctx, "parseMissionMarkdown", async () => {
-					// Parse succeeds
-					const parser = await import("../../src/mission/parser.js");
-					const missionParser = parser.createMissionParser();
-					const doc = missionParser.parse(validMissionMarkdown);
+			// Simulate crash by intercepting after first step
+			await runStep(ctx, "parseMissionMarkdown", async () => {
+				// Parse succeeds
+				const parser = await import("../../src/mission/parser.js");
+				const missionParser = parser.createMissionParser();
+				const doc = missionParser.parse(validMissionMarkdown);
 
-					// Record this step completed
-					crashAfterParse = true;
+				// Record this step completed
+				crashAfterParse = true;
 
-					return doc;
-				});
+				return doc;
+			});
 
-				// If we get here, step completed successfully
-				expect(crashAfterParse).toBe(true);
+			// If we get here, step completed successfully
+			expect(crashAfterParse).toBe(true);
 
-				// Verify step recorded in journal
-				const steps = db
-					.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
-					.all(workflowId);
+			// Verify step recorded in journal
+			const steps = db
+				.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
+				.all(workflowId);
 
-				expect(steps.length).toBe(1);
-				expect(steps[0]).toMatchObject({
-					workflow_id: workflowId,
-					step_name: "parseMissionMarkdown",
-					status: "success",
-				});
+			expect(steps.length).toBe(1);
+			expect(steps[0]).toMatchObject({
+				workflow_id: workflowId,
+				step_name: "parseMissionMarkdown",
+				status: "success",
+			});
 
-				// Step 2: Simulate restart - create new context with same journal
-				const recoveryCtx: WorkflowContext = {
-					workflowId,
-					journal,
-				};
+			// Step 2: Simulate restart - create new context with same journal
+			const recoveryCtx: WorkflowContext = {
+				workflowId,
+				journal,
+			};
 
-				// Re-run the same step - should be skipped (idempotent)
-				let stepRanAgain = false;
-				await runStep(recoveryCtx, "parseMissionMarkdown", async () => {
-					stepRanAgain = true;
-					throw new Error("Step should not re-run after success");
-				});
+			// Re-run the same step - should be skipped (idempotent)
+			let stepRanAgain = false;
+			await runStep(recoveryCtx, "parseMissionMarkdown", async () => {
+				stepRanAgain = true;
+				throw new Error("Step should not re-run after success");
+			});
 
-				// Step should have been skipped
-				expect(stepRanAgain).toBe(false);
+			// Step should have been skipped
+			expect(stepRanAgain).toBe(false);
 
-				// Journal should still have only 1 entry
-				const recoveredSteps = db
-					.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
-					.all(workflowId);
+			// Journal should still have only 1 entry
+			const recoveredSteps = db
+				.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
+				.all(workflowId);
 
-				expect(recoveredSteps.length).toBe(1);
-			} catch (error) {
-				// Should not crash during recovery
-				throw error;
-			}
+			expect(recoveredSteps.length).toBe(1);
 		});
 
 		it("should retry failed step on recovery", async () => {
@@ -278,7 +272,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 					// Second attempt succeeds
 					return "success";
 				});
-			} catch (error) {
+			} catch (_error) {
 				// First attempt failed, recorded in journal
 				const steps = db
 					.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
@@ -324,7 +318,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 			const missionId = "crash-test-mission-003";
 			const workflowId = "crash-workflow-003";
 
-			const config: MissionWorkflowConfig = {
+			const _config: MissionWorkflowConfig = {
 				missionId,
 				missionMarkdown: validMissionMarkdown,
 				outputDir,
@@ -346,7 +340,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 			// Verify parse step completed
 			let steps = db
 				.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
-				.all(workflowId);
+				.all(workflowId) as Array<{ step_name: string }>;
 			expect(steps.length).toBe(1);
 			expect(steps[0].step_name).toBe("parseMissionMarkdown");
 
@@ -370,7 +364,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 			// Can continue with next steps
 			steps = db
 				.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
-				.all(workflowId);
+				.all(workflowId) as Array<{ step_name: string }>;
 			expect(steps.length).toBe(1); // Only parse step recorded
 		});
 	});
@@ -415,7 +409,7 @@ describe("Phase 2.2 Crash Recovery", () => {
 
 						return state;
 					});
-				} catch (error) {
+				} catch (_error) {
 					// Crash occurred
 					break;
 				}
@@ -427,15 +421,11 @@ describe("Phase 2.2 Crash Recovery", () => {
 
 			const steps = db
 				.prepare("SELECT * FROM step_journal WHERE workflow_id = ?")
-				.all(workflowId);
+				.all(workflowId) as Array<{ status: string }>;
 
 			expect(steps.length).toBe(2); // One success, one failure
-			expect(
-				steps.filter((s: { status: string }) => s.status === "success").length,
-			).toBe(1);
-			expect(
-				steps.filter((s: { status: string }) => s.status === "failed").length,
-			).toBe(1);
+			expect(steps.filter((s) => s.status === "success").length).toBe(1);
+			expect(steps.filter((s) => s.status === "failed").length).toBe(1);
 
 			// Step 3: Resume from crash point
 			const recoveryCtx: WorkflowContext = {

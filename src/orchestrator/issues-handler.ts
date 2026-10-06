@@ -5,17 +5,20 @@
  * Integrates IssuesClassifier, VisionConflictDetector, and PlanAdjuster.
  */
 
-import type { DiscoveredIssue } from "../types/handoff.js";
-import type { Feature } from "../types/feature.js";
 import type { SqliteDb } from "../db/connection.js";
+import type { Assertion } from "../types/assertion.js";
+import type { Feature } from "../types/feature.js";
+import type { DiscoveredIssue } from "../types/handoff.js";
+import type { IssuesClassifier } from "./issues-classifier.js";
 import type {
 	IssuesHandler,
 	IssuesHandlingResult,
-	VisionContext,
 	PlanAdjuster,
 	VisionConflictDetector,
+	VisionContext,
 } from "./types.js";
-import { IssuesClassifier } from "./issues-classifier.js";
+
+export type { IssuesHandlingResult } from "./types.js";
 
 /**
  * Discovered Issues Repository
@@ -27,9 +30,14 @@ export interface DiscoveredIssuesRepository {
 	loadByHandoffId(handoffId: string): Promise<DiscoveredIssue[]>;
 
 	/**
-	 * Save issues
+	 * Save a single issue (matches actual repository signature)
 	 */
-	save(issues: DiscoveredIssue[], handoffId: string): Promise<void>;
+	save(issue: DiscoveredIssue, handoffId: string, featureId: string): void;
+
+	/**
+	 * Save multiple issues asynchronously
+	 */
+	saveAsync(issues: DiscoveredIssue[], handoffId: string): Promise<void>;
 }
 
 /**
@@ -70,9 +78,10 @@ export class DefaultIssuesHandler implements IssuesHandler {
 			classified.blocking.length > 0
 		) {
 			// Run vision conflict detection on all blocking issues
+			const detector = this.visionDetector;
 			const conflictResults = await Promise.all(
 				classified.blocking.map((issue) =>
-					this.visionDetector!.detect(issue, visionContext),
+					detector.detect(issue, visionContext),
 				),
 			);
 
@@ -145,6 +154,10 @@ export class DefaultIssuesHandler implements IssuesHandler {
 			const feature = await this.loadFeature(featureId);
 
 			// Run vision conflict detection
+			if (!this.visionDetector) {
+				throw new Error("Vision conflict detector not configured");
+			}
+
 			const conflictResults = await Promise.all(
 				architectureIssues.map((issue) =>
 					this.visionDetector!.detect(issue, visionContext),
@@ -211,11 +224,12 @@ export class DefaultIssuesHandler implements IssuesHandler {
 						// If major conflict, pause instead of auto-adjust
 						if (conflictResult.conflictLevel === "major") {
 							// Send signal via plan adjuster
-							const adjustmentResult = await this.planAdjuster.handleArchitectureConflict(
-								issue,
-								feature,
-								conflictResult,
-							);
+							const adjustmentResult =
+								await this.planAdjuster.handleArchitectureConflict(
+									issue,
+									feature,
+									conflictResult,
+								);
 
 							return {
 								action: "pause",
@@ -263,7 +277,7 @@ export class DefaultIssuesHandler implements IssuesHandler {
 			// Handle assertion_infeasible issues
 			if (infeasibleIssues.length > 0) {
 				const feature = await this.loadFeature(featureId);
-				
+
 				for (const issue of infeasibleIssues) {
 					const result = await this.planAdjuster.handleInfeasibleAssertion(
 						issue,
@@ -276,8 +290,10 @@ export class DefaultIssuesHandler implements IssuesHandler {
 						metadata: {
 							originalIssueId: issue.id,
 							affectedAssertions: issue.affectedAssertions || [],
-							modifiedAssertions: result.modifiedAssertions?.map(a => a.id),
-							updatedFeatureIds: result.updatedFeatures?.map(f => f.id),
+							modifiedAssertions: result.modifiedAssertions?.map(
+								(a: Assertion) => a.id,
+							),
+							updatedFeatureIds: result.updatedFeatures?.map((f) => f.id),
 						},
 					});
 				}
@@ -385,7 +401,11 @@ export class SqliteDiscoveredIssuesRepository
 		}));
 	}
 
-	async save(issues: DiscoveredIssue[], handoffId: string): Promise<void> {
+	async save(
+		issue: DiscoveredIssue,
+		handoffId: string,
+		featureId: string,
+	): Promise<void> {
 		const stmt = this.db.prepare(
 			`INSERT INTO discovered_issues (
         id, handoff_id, feature_id, severity, category, 
@@ -394,6 +414,23 @@ export class SqliteDiscoveredIssuesRepository
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		);
 
+		stmt.run(
+			issue.id,
+			handoffId,
+			featureId,
+			issue.severity,
+			issue.category,
+			issue.description,
+			issue.context,
+			issue.suggestedFix || null,
+			issue.affectedAssertions
+				? JSON.stringify(issue.affectedAssertions)
+				: null,
+			issue.discoveredAt,
+		);
+	}
+
+	async saveAsync(issues: DiscoveredIssue[], handoffId: string): Promise<void> {
 		// Get feature_id from handoff
 		const handoffRow = this.db
 			.prepare(`SELECT feature_id FROM handoffs WHERE id = ?`)
@@ -404,20 +441,7 @@ export class SqliteDiscoveredIssuesRepository
 		}
 
 		for (const issue of issues) {
-			stmt.run(
-				issue.id,
-				handoffId,
-				handoffRow.feature_id,
-				issue.severity,
-				issue.category,
-				issue.description,
-				issue.context,
-				issue.suggestedFix || null,
-				issue.affectedAssertions
-					? JSON.stringify(issue.affectedAssertions)
-					: null,
-				issue.discoveredAt,
-			);
+			await this.save(issue, handoffId, handoffRow.feature_id);
 		}
 	}
 }

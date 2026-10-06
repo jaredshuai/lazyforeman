@@ -8,12 +8,12 @@ import type {
 	Proposal,
 	Review,
 	Vote,
-} from "../../src/adjudication/types.js";
+} from "../../../src/adjudication/types.js";
 import type {
 	ArchivedDecision,
 	DecisionMetadata,
-} from "../../src/adjudication/archive.js";
-import type { DiscoveredIssue } from "../../src/types/handoff.js";
+} from "../../../src/adjudication/archive.js";
+import type { DiscoveredIssue } from "../../../src/types/handoff.js";
 
 /**
  * Mock proposals

@@ -41,7 +41,7 @@ describe("DefaultSignalManager", () => {
 					conflictDetails: {
 						conflictLevel: "minor",
 						reasoning: "Test conflict 2",
-						recommendation: "auto_adjust",
+						recommendation: "multi_ai_adjudication",
 					},
 				},
 			});
@@ -149,7 +149,7 @@ describe("DefaultSignalManager", () => {
 					conflictDetails: {
 						conflictLevel: "minor",
 						reasoning: "Conflict 2",
-						recommendation: "auto_adjust",
+						recommendation: "multi_ai_adjudication",
 					},
 				},
 			});

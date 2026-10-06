@@ -366,11 +366,13 @@ describe("Mission Workflow", () => {
 			// Parse JSON fields
 			const features = corruptedFeatures.map((f) => ({
 				id: f.id,
+				missionId: "test-mission-009",
 				name: f.name,
 				description: f.description,
 				status: f.status as "pending" | "in_progress" | "completed" | "failed",
 				fulfills: JSON.parse(f.fulfills) as string[],
 				preconditions: JSON.parse(f.preconditions) as string[],
+				currentWorkerSessionId: null,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			}));

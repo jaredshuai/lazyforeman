@@ -51,15 +51,15 @@ export class DefaultVisionConflictDetector implements VisionConflictDetector {
 			// Check if description mentions actual conflict with mission requirements
 			const conflictKeywords = ["冲突", "不一致", "违反", "矛盾"];
 			const issueText = `${issue.description} ${issue.context || ""}`;
-			
-			if (conflictKeywords.some(keyword => issueText.includes(keyword))) {
+
+			if (conflictKeywords.some((keyword) => issueText.includes(keyword))) {
 				return {
 					conflictLevel: "major",
 					reasoning: `架构冲突：${issue.description}`,
 					recommendation: "require_user_decision",
 				};
 			}
-			
+
 			// Non-critical architecture issues are minor
 			return {
 				conflictLevel: "minor",
@@ -141,7 +141,7 @@ export class DefaultVisionConflictDetector implements VisionConflictDetector {
 	 * @param goal - Mission 目标
 	 * @returns 是否影响目标
 	 */
-	private checkGoalImpact(issue: DiscoveredIssue, goal: string): boolean {
+	private checkGoalImpact(issue: DiscoveredIssue, _goal: string): boolean {
 		// 简化版：检查 issue 是否提议改变核心功能
 		const impactKeywords = ["改为", "替换", "取消", "不实现"];
 		const issueText = `${issue.description} ${issue.suggestedFix || ""}`;
@@ -197,7 +197,7 @@ export class DefaultVisionConflictDetector implements VisionConflictDetector {
 	 */
 	private detectsViolation(
 		issue: DiscoveredIssue,
-		constraint: string,
+		_constraint: string,
 	): boolean {
 		// 检测是否提议违反约束
 		// 例如：constraint = "必须使用 PostgreSQL"

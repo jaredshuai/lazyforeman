@@ -9,33 +9,27 @@
  * - Complete workflow: Grill → Mission → Execute → Issues → Adjust → Validate
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { randomBytes } from "node:crypto";
+import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openDatabase, type SqliteDb } from "../../src/db/connection.js";
+import { DiscoveredIssuesRepository } from "../../src/discovered-issues/repository.js";
+import { IssuesClassifier } from "../../src/orchestrator/issues-classifier.js";
+import { DefaultIssuesHandler } from "../../src/orchestrator/issues-handler.js";
+import { DefaultPlanAdjuster } from "../../src/orchestrator/plan-adjuster.js";
+import { DefaultVisionConflictDetector } from "../../src/orchestrator/vision-conflict-detector.js";
 import { SqliteStepJournal } from "../../src/runtime/step-journal.js";
 import type { WorkflowContext } from "../../src/runtime/workflow-runner.js";
+import { DefaultSignalManager } from "../../src/signals/manager.js";
+import type { Assertion } from "../../src/types/assertion.js";
+import type { Feature } from "../../src/types/feature.js";
+import type { DiscoveredIssue } from "../../src/types/handoff.js";
 import {
 	executeMissionWorkflow,
 	type MissionWorkflowConfig,
 } from "../../src/workflows/mission.js";
-import type { Feature } from "../../src/types/feature.js";
-import type { Assertion } from "../../src/types/assertion.js";
-import {
-	DefaultIssuesHandler,
-	type IssuesHandlingResult,
-} from "../../src/orchestrator/issues-handler.js";
-import { IssuesClassifier } from "../../src/orchestrator/issues-classifier.js";
-import { DefaultVisionConflictDetector } from "../../src/orchestrator/vision-conflict-detector.js";
-import {
-	DefaultPlanAdjuster,
-	type PlanAdjustmentResult,
-} from "../../src/orchestrator/plan-adjuster.js";
-import type { DiscoveredIssue } from "../../src/types/handoff.js";
-import { DiscoveredIssuesRepository } from "../../src/discovered-issues/repository.js";
-import { DefaultSignalManager } from "../../src/signals/manager.js";
 
 describe("Phase 2.2 End-to-End Integration", () => {
 	let db: SqliteDb;
@@ -279,7 +273,9 @@ describe("Phase 2.2 End-to-End Integration", () => {
 			expect(handling.action).toBe("auto_adjust");
 			expect(handling.suggestions).toBeDefined();
 			expect(handling.suggestions.length).toBe(2);
-			expect(handling.suggestions.every(s => s.type === "create_feature")).toBe(true);
+			expect(
+				handling.suggestions.every((s) => s.type === "create_feature"),
+			).toBe(true);
 
 			const allFeatures = db
 				.prepare<unknown[], Feature>(
@@ -330,11 +326,6 @@ describe("Phase 2.2 End-to-End Integration", () => {
 					context: "检查现有认证实现时发现架构冲突",
 					discoveredAt: new Date().toISOString(),
 					affectedAssertions: [targetFeature.fulfills[0]],
-					architectureConflict: {
-						missionRequirement: "使用 JWT 进行身份验证",
-						existingPattern: "现有代码使用 OAuth2 进行身份验证",
-						conflictSeverity: "breaking",
-					},
 				},
 			];
 
@@ -374,7 +365,7 @@ describe("Phase 2.2 End-to-End Integration", () => {
 			// Step 5: Verify signal exists in database
 			const signalId = handling.suggestions[0].metadata?.signalId as string;
 			expect(signalId).toBeDefined();
-			
+
 			const signal = db
 				.prepare("SELECT * FROM signals WHERE id = ?")
 				.get(signalId);

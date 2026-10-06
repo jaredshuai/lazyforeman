@@ -82,7 +82,7 @@ export class DefaultSignalManager implements SignalManager {
 		// 1. 生成唯一 ID
 		this.idCounter++;
 		const signalId = `SIG-${String(this.idCounter).padStart(3, "0")}`;
-		
+
 		// 2. 构造完整 signal
 		const fullSignal: Signal = {
 			id: signalId,

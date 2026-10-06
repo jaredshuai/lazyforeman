@@ -388,11 +388,13 @@ function createAssertion(id: string): Assertion {
 function createFeature(id: string, fulfills: string[]): Feature {
 	return {
 		id,
+		missionId: "mission-001",
 		name: `Test feature ${id}`,
 		description: `Test feature description ${id}`,
 		status: "pending",
 		fulfills,
 		preconditions: [],
+		currentWorkerSessionId: null,
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	};

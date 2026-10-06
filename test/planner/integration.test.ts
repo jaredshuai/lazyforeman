@@ -122,7 +122,11 @@ describe("Planner Integration", () => {
 		];
 
 		// Generate features
-		const features = await planner.generateFeatures(mission, assertions);
+		const features = await planner.generateFeatures(
+			"mission-001",
+			mission,
+			assertions,
+		);
 
 		// Verify basic properties
 		expect(features).toHaveLength(4);
@@ -183,7 +187,11 @@ describe("Planner Integration", () => {
 		}
 
 		// Generate features
-		const features = await planner.generateFeatures(mission, assertions);
+		const features = await planner.generateFeatures(
+			"mission-001",
+			mission,
+			assertions,
+		);
 
 		// Collect all claims
 		const allClaims = features.flatMap((f) => f.fulfills);
@@ -252,7 +260,11 @@ describe("Planner Integration", () => {
 		}
 
 		// Generate features
-		const features = await planner.generateFeatures(mission, assertions);
+		const features = await planner.generateFeatures(
+			"mission-001",
+			mission,
+			assertions,
+		);
 
 		// Verify all features were generated
 		expect(features).toHaveLength(35);
@@ -336,6 +348,7 @@ Implement secure user authentication system
 
 		// Generate features (Planner Agent)
 		const features = await planner.generateFeatures(
+			"mission-001",
 			mission,
 			assertionResult.assertions,
 		);

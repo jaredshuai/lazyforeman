@@ -69,7 +69,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features).toHaveLength(3);
 			expect(features[0].fulfills).toEqual(["VAL-001"]);
@@ -120,7 +124,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].id).toBe("feat-001");
 			expect(features[1].id).toBe("feat-002");
@@ -157,7 +165,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			// Each feature should claim exactly one assertion
 			expect(features[0].fulfills).toHaveLength(1);
@@ -191,7 +203,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].description).toContain("Users can login");
 			expect(features[0].description).toContain(
@@ -225,7 +241,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].name).toHaveLength(50);
 			expect(features[0].name.endsWith("...")).toBe(true);
@@ -255,7 +275,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].name).toBe(shortDescription);
 		});
@@ -289,7 +313,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			for (const feature of features) {
 				expect(feature.preconditions).toEqual([]);
@@ -318,7 +346,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].status).toBe("pending");
 		});
@@ -345,7 +377,11 @@ describe("Planner Agent", () => {
 				},
 			];
 
-			const features = await agent.generateFeatures(mission, assertions);
+			const features = await agent.generateFeatures(
+				"mission-001",
+				mission,
+				assertions,
+			);
 
 			expect(features[0].createdAt).toBeTruthy();
 			expect(features[0].updatedAt).toBeTruthy();
@@ -365,7 +401,7 @@ describe("Planner Agent", () => {
 				rawMarkdown: "",
 			};
 
-			const features = await agent.generateFeatures(mission, []);
+			const features = await agent.generateFeatures("mission-001", mission, []);
 
 			expect(features).toHaveLength(0);
 		});
@@ -383,9 +419,9 @@ describe("Planner Agent", () => {
 				rawMarkdown: "",
 			};
 
-			await expect(groupedAgent.generateFeatures(mission, [])).rejects.toThrow(
-				"Unsupported strategy: grouped",
-			);
+			await expect(
+				groupedAgent.generateFeatures("mission-001", mission, []),
+			).rejects.toThrow("Unsupported strategy: grouped");
 		});
 	});
 
@@ -402,21 +438,25 @@ describe("Planner Agent", () => {
 			const features: Feature[] = [
 				{
 					id: "feat-001",
+					missionId: "mission-001",
 					name: "Feature 1",
 					description: "Description 1",
 					status: "pending",
 					fulfills: ["VAL-001"],
 					preconditions: [],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
 				{
 					id: "feat-002",
+					missionId: "mission-001",
 					name: "Feature 2",
 					description: "Description 2",
 					status: "pending",
 					fulfills: ["VAL-002"],
 					preconditions: [],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
@@ -445,11 +485,13 @@ describe("Planner Agent", () => {
 			const features: Feature[] = [
 				{
 					id: "feat-001",
+					missionId: "mission-001",
 					name: "Feature 1",
 					description: "Description 1",
 					status: "pending",
 					fulfills: ["VAL-001"],
 					preconditions: [],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
@@ -468,11 +510,13 @@ describe("Planner Agent", () => {
 			const features: Feature[] = [
 				{
 					id: "feat-001",
+					missionId: "mission-001",
 					name: "Feature 1",
 					description: "Description 1",
 					status: "pending",
 					fulfills: ["VAL-001", "VAL-002"],
 					preconditions: ["feat-000"],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
@@ -492,11 +536,13 @@ describe("Planner Agent", () => {
 			const features: Feature[] = [
 				{
 					id: "feat-001",
+					missionId: "mission-001",
 					name: "Feature 1",
 					description: "Description 1",
 					status: "pending",
 					fulfills: [],
 					preconditions: [],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
@@ -528,21 +574,25 @@ describe("Planner Agent", () => {
 			const features: Feature[] = [
 				{
 					id: "feat-001",
+					missionId: "mission-001",
 					name: "Feature 1",
 					description: "Description 1",
 					status: "pending",
 					fulfills: ["VAL-001"],
 					preconditions: [],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
 				{
 					id: "feat-002",
+					missionId: "mission-001",
 					name: "Feature 2",
 					description: "Description 2",
 					status: "completed",
 					fulfills: ["VAL-002"],
 					preconditions: ["feat-001"],
+					currentWorkerSessionId: null,
 					createdAt: "2026-01-01T00:00:00Z",
 					updatedAt: "2026-01-01T00:00:00Z",
 				},
@@ -655,7 +705,11 @@ describe("Planner Agent", () => {
 				];
 
 				// Generate features
-				const features = await agent.generateFeatures(mission, assertions);
+				const features = await agent.generateFeatures(
+					"mission-001",
+					mission,
+					assertions,
+				);
 				expect(features).toHaveLength(2);
 
 				// Save to database

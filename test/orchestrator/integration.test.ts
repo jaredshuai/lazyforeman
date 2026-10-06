@@ -21,7 +21,11 @@ describe("Orchestrator Issues Integration", () => {
 	/**
 	 * 创建必要的 mission、feature 和 handoff 记录以满足外键约束
 	 */
-	function setupTestData(featureId: string, handoffId?: string, missionId = "mission-001"): void {
+	function setupTestData(
+		featureId: string,
+		handoffId?: string,
+		missionId = "mission-001",
+	): void {
 		// 创建 mission
 		const missionStmt = db.prepare(`
       INSERT OR IGNORE INTO missions (id, name, description, status, created_at, updated_at)

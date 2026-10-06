@@ -90,6 +90,8 @@ describe("Scenario 3: End-to-End Integration", () => {
 				status: "completed",
 				fulfills: ["VAL-001"],
 				preconditions: [],
+				missionId: "mission-001",
+				currentWorkerSessionId: null,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			},
@@ -100,6 +102,8 @@ describe("Scenario 3: End-to-End Integration", () => {
 				status: "in_progress",
 				fulfills: ["VAL-010"],
 				preconditions: [],
+				missionId: "mission-001",
+				currentWorkerSessionId: null,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			},
@@ -185,11 +189,13 @@ describe("Scenario 3: End-to-End Integration", () => {
 
 		const updatedFeatures: Feature[] = updatedFeatureRows.map((row) => ({
 			id: row.id,
+			missionId: "mission-001",
 			name: row.name,
 			description: row.description,
 			status: row.status as Feature["status"],
 			fulfills: JSON.parse(row.fulfills),
 			preconditions: JSON.parse(row.preconditions),
+			currentWorkerSessionId: null,
 			createdAt: row.created_at,
 			updatedAt: row.updated_at,
 		}));
@@ -258,11 +264,13 @@ describe("Scenario 3: End-to-End Integration", () => {
 
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Browser Compatibility",
 			description: "Support old browsers",
 			status: "in_progress",
 			fulfills: ["VAL-010"],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};

@@ -23,6 +23,8 @@ describe("lazyforeman type exports", () => {
 			status: "pending",
 			fulfills: [],
 			preconditions: [],
+			missionId: "mission-001",
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};

@@ -22,7 +22,12 @@ class MockDiscoveredIssuesRepository implements DiscoveredIssuesRepository {
 		return this.issues.get(handoffId) || [];
 	}
 
-	async save(issues: DiscoveredIssue[], handoffId: string): Promise<void> {
+	save(issue: DiscoveredIssue, handoffId: string, featureId: string): void {
+		const existing = this.issues.get(handoffId) || [];
+		this.issues.set(handoffId, [...existing, issue]);
+	}
+
+	async saveAsync(issues: DiscoveredIssue[], handoffId: string): Promise<void> {
 		this.issues.set(handoffId, issues);
 	}
 

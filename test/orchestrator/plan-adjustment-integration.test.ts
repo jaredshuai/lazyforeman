@@ -97,7 +97,7 @@ describe("Plan Adjustment Integration", () => {
 	describe("Scenario 1: dependency_missing", () => {
 		it("应该自动生成新 feature 并更新 preconditions", async () => {
 			// Save dependency issue
-			await repository.save([mockBlockingDependencyIssue], "handoff-001");
+			await repository.saveAsync([mockBlockingDependencyIssue], "handoff-001");
 
 			// Handle issues
 			const result = await handler.handle(
@@ -146,7 +146,7 @@ describe("Plan Adjustment Integration", () => {
 				discoveredAt: new Date().toISOString(),
 			};
 
-			await repository.save([issue1, issue2], "handoff-001");
+			await repository.saveAsync([issue1, issue2], "handoff-001");
 
 			const result = await handler.handle(
 				mockOriginalFeature.id,
@@ -190,7 +190,10 @@ describe("Plan Adjustment Integration", () => {
 		});
 
 		it("应该正确处理非 dependency_missing 的 blocking issue", async () => {
-			await repository.save([mockBlockingArchitectureIssue], "handoff-001");
+			await repository.saveAsync(
+				[mockBlockingArchitectureIssue],
+				"handoff-001",
+			);
 
 			const result = await handler.handle(
 				mockOriginalFeature.id,
@@ -217,7 +220,7 @@ describe("Plan Adjustment Integration", () => {
 			};
 
 			// 2. Save issue to repository
-			await repository.save([workerIssue], "handoff-001");
+			await repository.saveAsync([workerIssue], "handoff-001");
 
 			// 3. Orchestrator handles the issue
 			const result = await handler.handle(
@@ -264,7 +267,7 @@ describe("Plan Adjustment Integration", () => {
 
 		it("应该保证幂等性：重复处理不生成重复 features", async () => {
 			// Save issue
-			await repository.save([mockBlockingDependencyIssue], "handoff-001");
+			await repository.saveAsync([mockBlockingDependencyIssue], "handoff-001");
 
 			// First handle
 			const result1 = await handler.handle(
@@ -291,7 +294,7 @@ describe("Plan Adjustment Integration", () => {
 				mockBlockingArchitectureIssue,
 			];
 
-			await repository.save(issues, "handoff-001");
+			await repository.saveAsync(issues, "handoff-001");
 
 			const loaded = await repository.loadByHandoffId("handoff-001");
 

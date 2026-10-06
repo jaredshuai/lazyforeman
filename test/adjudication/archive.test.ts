@@ -13,7 +13,7 @@ import {
 	mockIssue,
 } from "./fixtures/mock-archive.js";
 
-const TEST_BASE_DIR = ".test-lazyforeman";
+const TEST_BASE_DIR = ".test-lazyforeman-unit";
 const TEST_MISSION_ID = "test-mission";
 
 describe("DefaultDecisionArchive", () => {

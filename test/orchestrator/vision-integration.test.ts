@@ -26,7 +26,8 @@ import fs from "node:fs";
 
 interface DiscoveredIssuesRepository {
 	loadByHandoffId(handoffId: string): Promise<DiscoveredIssue[]>;
-	save(issues: DiscoveredIssue[], handoffId: string): Promise<void>;
+	save(issue: DiscoveredIssue, handoffId: string, featureId: string): void;
+	saveAsync(issues: DiscoveredIssue[], handoffId: string): Promise<void>;
 }
 
 describe("Vision Integration Tests", () => {
@@ -91,7 +92,10 @@ describe("Vision Integration Tests", () => {
 		async loadByHandoffId(_handoffId: string) {
 			return issues;
 		},
-		async save(_issues: DiscoveredIssue[], _handoffId: string) {
+		save(_issue: DiscoveredIssue, _handoffId: string, _featureId: string) {
+			// Mock implementation
+		},
+		async saveAsync(_issues: DiscoveredIssue[], _handoffId: string) {
 			// Mock implementation
 		},
 	});
@@ -102,6 +106,7 @@ describe("Vision Integration Tests", () => {
 				action: "feature_created",
 				newFeature: {
 					id: "feat-new",
+					missionId: feature.missionId,
 					name: `依赖: ${issue.description}`,
 					description: issue.suggestedFix || issue.description,
 					status: "pending",
@@ -126,6 +131,12 @@ describe("Vision Integration Tests", () => {
 				action: "no_action_needed",
 				reasoning: `Architecture conflict detected: ${conflictResult.reasoning}`,
 				signalId: "signal-001",
+			};
+		},
+		async handleInfeasibleAssertion(issue, feature) {
+			return {
+				action: "assertion_modified",
+				reasoning: `Infeasible assertion detected: ${issue.description}`,
 			};
 		},
 	});

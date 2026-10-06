@@ -70,11 +70,13 @@ describe("Scenario 3: Infeasible Assertion Handling", () => {
 
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Browser Compatibility",
 			description: "Support old browsers",
 			status: "in_progress",
 			fulfills: ["VAL-010"],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -144,11 +146,13 @@ describe("Scenario 3: Infeasible Assertion Handling", () => {
 
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Browser Compatibility",
 			description: "Support old browsers",
 			status: "in_progress",
 			fulfills: ["VAL-010", "VAL-009"],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -231,11 +235,13 @@ describe("Scenario 3: Infeasible Assertion Handling", () => {
 
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Browser Compatibility",
 			description: "Support old browsers",
 			status: "in_progress",
 			fulfills: ["VAL-010", "VAL-011"],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -280,11 +286,13 @@ describe("Scenario 3: Infeasible Assertion Handling", () => {
 	it("should return no_action_needed when issue has no affected assertions", async () => {
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Test Feature",
 			description: "Test",
 			status: "in_progress",
 			fulfills: [],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -348,11 +356,13 @@ describe("Scenario 3: Infeasible Assertion Handling", () => {
 
 		const feature: Feature = {
 			id: "feat-001",
+			missionId: "mission-001",
 			name: "Browser Compatibility",
 			description: "Support old browsers",
 			status: "in_progress",
 			fulfills: ["VAL-010"],
 			preconditions: [],
+			currentWorkerSessionId: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};

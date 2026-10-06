@@ -28,11 +28,13 @@ export interface PlannerAgent {
 	/**
 	 * Generate features from mission and assertions
 	 *
+	 * @param missionId - Mission ID
 	 * @param mission - Mission document
 	 * @param assertions - Assertion list
 	 * @returns Feature list
 	 */
 	generateFeatures(
+		missionId: string,
 		mission: MissionDocument,
 		assertions: Assertion[],
 	): Promise<Feature[]>;
@@ -92,11 +94,12 @@ export class DefaultPlannerAgent implements PlannerAgent {
 	}
 
 	async generateFeatures(
+		missionId: string,
 		mission: MissionDocument,
 		assertions: Assertion[],
 	): Promise<Feature[]> {
 		if (this.strategy === "one-to-one") {
-			return this.generateOneToOneFeatures(mission, assertions);
+			return this.generateOneToOneFeatures(missionId, mission, assertions);
 		}
 
 		throw new Error(`Unsupported strategy: ${this.strategy}`);
@@ -112,6 +115,7 @@ export class DefaultPlannerAgent implements PlannerAgent {
 	 * - preconditions = [] (Phase 2.1 does not analyze dependencies)
 	 */
 	private generateOneToOneFeatures(
+		missionId: string,
 		mission: MissionDocument,
 		assertions: Assertion[],
 	): Feature[] {
@@ -137,6 +141,8 @@ export class DefaultPlannerAgent implements PlannerAgent {
 				fulfills: [assertion.id],
 				preconditions: [], // Phase 2.1 does not analyze dependencies
 				status: "pending",
+				missionId,
+				currentWorkerSessionId: null,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			};

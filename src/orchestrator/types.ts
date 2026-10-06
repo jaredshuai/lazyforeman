@@ -119,9 +119,15 @@ export interface VisionConflictDetector {
  * Plan adjustment result
  */
 export interface PlanAdjustmentResult {
-	action: "feature_created" | "no_action_needed";
+	action:
+		| "feature_created"
+		| "create_new_feature"
+		| "update_assertions"
+		| "assertion_modified"
+		| "no_action_needed";
 	newFeature?: import("../types/feature.js").Feature;
 	updatedFeatures?: import("../types/feature.js").Feature[];
+	modifiedAssertions?: import("../types/assertion.js").Assertion[];
 	reasoning: string;
 	signalId?: string; // Signal ID if a signal was sent
 }
@@ -154,5 +160,17 @@ export interface PlanAdjuster {
 		issue: DiscoveredIssue,
 		originalFeature: import("../types/feature.js").Feature,
 		conflictResult: ConflictDetectionResult,
+	): Promise<PlanAdjustmentResult>;
+
+	/**
+	 * Handle infeasible assertion (Scenario 3)
+	 *
+	 * @param issue - assertion_infeasible type issue
+	 * @param originalFeature - Feature that discovered the issue
+	 * @returns Adjustment result
+	 */
+	handleInfeasibleAssertion(
+		issue: DiscoveredIssue,
+		originalFeature: import("../types/feature.js").Feature,
 	): Promise<PlanAdjustmentResult>;
 }

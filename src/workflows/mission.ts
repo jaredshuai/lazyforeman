@@ -121,7 +121,11 @@ export async function executeMissionWorkflow(
 	// Step 3: Generate features using Planner Agent
 	const features = await runStep(ctx, "generateFeatures", async () => {
 		const planner = createPlannerAgent(db, "one-to-one");
-		return await planner.generateFeatures(missionDocument, assertions);
+		return await planner.generateFeatures(
+			missionId,
+			missionDocument,
+			assertions,
+		);
 	});
 
 	// Step 4: Validate coverage (hard gate - must be 100%)
