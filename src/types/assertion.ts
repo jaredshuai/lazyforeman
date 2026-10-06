@@ -28,4 +28,21 @@ export interface Assertion {
 
 	/** 更新时间 */
 	updatedAt: string;
+
+	// Phase 2.1 扩展：契约层支持
+
+	/** 断言类型（Phase 2.1） */
+	type?: "deterministic" | "semantic";
+
+	/** 认领此断言的 Feature ID（Phase 2.1，取代 featureId） */
+	claimedBy?: string;
+
+	/** 关联的 Mission ID（Phase 2.1） */
+	missionId?: string;
+
+	/** 在 mission.md successCriteria 中的索引（Phase 2.1） */
+	sourceIndex?: number;
+
+	/** 断言来源（Phase 2.1） */
+	createdFrom?: "mission.md" | "manual";
 }
