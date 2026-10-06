@@ -1,6 +1,65 @@
 import { z } from "zod";
 
 /**
+ * 问题严重程度
+ */
+export type IssueSeverity = "blocking" | "warning" | "info";
+
+/**
+ * 问题类别
+ */
+export type IssueCategory =
+	| "dependency_missing"
+	| "architecture_conflict"
+	| "assertion_infeasible"
+	| "scope_ambiguity"
+	| "technical_constraint"
+	| "other";
+
+/**
+ * Worker 发现的契约冲突或问题
+ */
+export interface DiscoveredIssue {
+	/** 唯一标识符（格式：ISSUE-001） */
+	id: string;
+	/** 严重程度 */
+	severity: IssueSeverity;
+	/** 问题类别 */
+	category: IssueCategory;
+	/** 问题描述 */
+	description: string;
+	/** 发现问题的上下文 */
+	context: string;
+	/** 建议的修复方案 */
+	suggestedFix?: string;
+	/** 受影响的断言 ID */
+	affectedAssertions?: string[];
+	/** 发现时间（ISO 8601） */
+	discoveredAt: string;
+}
+
+/**
+ * DiscoveredIssue Zod Schema
+ */
+export const DiscoveredIssueSchema = z.object({
+	id: z.string().regex(/^ISSUE-\d{3}$/, "ID must be in format ISSUE-001"),
+	severity: z.enum(["blocking", "warning", "info"]),
+	category: z.enum([
+		"dependency_missing",
+		"architecture_conflict",
+		"assertion_infeasible",
+		"scope_ambiguity",
+		"technical_constraint",
+		"other",
+	]),
+	description: z.string().min(10, "Description must be at least 10 characters"),
+	context: z.string().min(10, "Context must be at least 10 characters"),
+	suggestedFix: z.string().optional(),
+	affectedAssertions: z.array(z.string()).optional(),
+	discoveredAt: z.string().datetime(),
+});
+
+/**
  * Handoff 契约（Zod schema，唯一事实源）
  *
  * Handoff 是 Worker 完成任务后的交接契约。schema 同时承担两个职责：
@@ -60,14 +119,8 @@ export const HandoffSchema = z.object({
 		coverage: z.string(),
 	}),
 
-	/** Worker 发现的问题，可用于挑战契约 */
-	discoveredIssues: z.array(
-		z.object({
-			severity: z.enum(["blocking", "non_blocking", "suggestion"]),
-			description: z.string(),
-			suggestedFix: z.string(),
-		}),
-	),
+	/** Worker 发现的问题清单 */
+	discoveredIssues: z.array(DiscoveredIssueSchema).optional(),
 
 	/** Skill 反馈 */
 	skillFeedback: z.object({

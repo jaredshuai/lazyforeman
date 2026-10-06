@@ -106,7 +106,12 @@ export class DefaultCoverageValidator implements CoverageValidator {
 		assertions: Assertion[],
 		features: Feature[],
 	): CoverageValidationResult {
-		const assertionIds = new Set(assertions.map((a) => a.id));
+		// Filter out infeasible assertions - they don't participate in coverage validation
+		const feasibleAssertions = assertions.filter(
+			(a) => a.status !== "infeasible",
+		);
+
+		const assertionIds = new Set(feasibleAssertions.map((a) => a.id));
 		const claimMap = new Map<string, string[]>();
 
 		// Build claim map: assertionId -> [featureIds]
@@ -140,7 +145,7 @@ export class DefaultCoverageValidator implements CoverageValidator {
 			}
 		}
 
-		// Calculate coverage metrics
+		// Calculate coverage metrics (only for feasible assertions)
 		const claimedAssertions =
 			assertionIds.size - orphanAssertions.length - duplicateClaims.size;
 		const coveragePercentage =

@@ -71,5 +71,20 @@
 | test/wayfinder/client.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Wayfinder Client 单元测试：架构探索，代码搜索，缓存机制，fallback 模式，mock MCP 工具；20 个测试用例 |
 | test/workflows/mission.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Mission Workflow 单元测试：step 幂等性，崩溃恢复，coverage gate 阻塞；18 个测试用例 |
 | test/workflows/mission-integration.test.ts | 验证与观察 | current | 执行者 / Phase 2.1 完成时 | Mission Workflow 端到端测试：完整 mission 执行（mission.md → assertions → features → handoffs），DAG 顺序验证，progress_log 正确性；12 个测试用例 |
+| docs/phase-2.2-architecture.md | 设计与决策 | current | 架构设计者 / Phase 2.2 完成时 | Phase 2.2 架构设计：Grill Agent 五维深挖、Worker 契约挑战（discoveredIssues）、Orchestrator 动态调整（三场景处理）、send/recv 信号机制、多 AI 裁决（三轮流程）；完整模块设计、数据流、存储设计、测试策略 |
+| docs/examples/grill-example.md | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Grill 使用示例：从粗略目标 "实现用户登录功能" 到高质量 mission.md 的完整五维深挖过程；演示目标澄清、边界确认、技术约束（Wayfinder 集成）、验收标准细化、风险识别 |
+| src/grill/agent.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Grill Agent 实现：五维深挖机制，Wayfinder 集成，多轮对话管理，生成 mission.md；质量门禁（六大章节、至少 3 条验收标准、明确边界） |
+| src/grill/types.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Grill 类型定义：GrillOptions、GrillMessage、GrillSession、GrillDimension（五维深挖） |
+| src/discovered-issues/repository.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | DiscoveredIssues 仓储：保存 issues 到 discovered_issues 表，查询（按 feature/severity/category），统计分析 |
+| src/discovered-issues/types.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | DiscoveredIssue 类型定义：severity（blocking/major/minor），category（dependency_missing/architecture_conflict/assertion_infeasible/scope_ambiguity/technical_constraint/other），affectedAssertions |
+| src/orchestrator/issues-handler.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Issues Handler：读取 handoff.discoveredIssues，调用 IssuesClassifier 分类，决策 action（auto_adjust/pause/ignore），路由到 PlanAdjuster 或 SignalManager |
+| src/orchestrator/issues-classifier.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Issues Classifier：按 severity 和 category 分类，决定 action（blocking → auto_adjust/pause，major → auto_adjust，minor → ignore） |
+| src/orchestrator/vision-conflict-detector.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Vision Conflict Detector：三级冲突判定（重大/轻微/无冲突），分析 discoveredIssue 与 mission 的关系（核心目标冲突、边界违反、架构约束违反） |
+| src/orchestrator/plan-adjuster.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Plan Adjuster：处理三种场景（依赖缺失 → 生成新 feature，架构冲突 → 调用 VisionConflictDetector，断言不可行 → 标记 infeasible），更新 features.json/assertions.json，重新验证覆盖 |
+| src/signals/manager.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Signal Manager：send() 暂停 workflow（持久化到 signals 表，抛出 SignalPauseException），recv() 恢复 workflow（等待用户裁决，返回 SignalResolution） |
+| src/signals/types.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Signal 类型定义：Signal（type/status/payload），SignalResolution（action: approve/reject/modify，modifications），SignalPayload（feature_id/issue/context） |
+| src/adjudication/adjudicator.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | 多 AI 裁决器：三轮流程（独立提案 → 互评 → 修订投票），并行调用 3-5 个 AI 模型，结果判定（consensus/majority/deadlock），自动归档 |
+| src/adjudication/types.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | Adjudication 类型定义：AdjudicationContext、AdjudicationOutcome、AdjudicationRound、ParticipantProposal |
+| src/adjudication/archive.ts | 现状与使用说明 | current | 执行者 / Phase 2.2 完成时 | 裁决归档器：留档到 .lazyforeman/missions/<mission-name>/decisions/<timestamp>-<issue>/（metadata.json、round-1/2/3.json、outcome.json、README.md） |
 
 

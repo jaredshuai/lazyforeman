@@ -77,8 +77,13 @@ export class DefaultInvestigatorAgent implements InvestigatorAgent {
 		for (let i = 0; i < mission.successCriteria.length; i++) {
 			const criterion = mission.successCriteria[i];
 
-			// Generate assertion ID (VAL-001, VAL-002, ...)
-			const id = `VAL-${String(i + 1).padStart(3, "0")}`;
+			// Extract assertion ID from criterion if present (e.g., **VAL-2.2-001**: ...)
+			// Otherwise generate sequential ID (VAL-001, VAL-002, ...)
+			let id = `VAL-${String(i + 1).padStart(3, "0")}`;
+			const idMatch = criterion.match(/\*\*VAL-([^*]+)\*\*:/);
+			if (idMatch) {
+				id = `VAL-${idMatch[1]}`;
+			}
 
 			// Classify assertion type
 			const type = this.classifyAssertionType(criterion);

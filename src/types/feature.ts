@@ -8,6 +8,9 @@ export interface Feature {
 	/** Feature 唯一标识符 */
 	id: string;
 
+	/** Mission ID */
+	missionId: string;
+
 	/** Feature 名称 */
 	name: string;
 
@@ -24,7 +27,7 @@ export interface Feature {
 	preconditions: string[];
 
 	/** 当前 Worker 会话 ID */
-	currentWorkerSessionId?: string;
+	currentWorkerSessionId: string | null;
 
 	/** 创建时间 */
 	createdAt: string;

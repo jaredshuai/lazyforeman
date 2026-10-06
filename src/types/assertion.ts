@@ -12,7 +12,7 @@ export interface Assertion {
 	description: string;
 
 	/** 断言状态 */
-	status: "pending" | "passed" | "failed";
+	status: "pending" | "passed" | "failed" | "infeasible";
 
 	/** 认领此断言的 Feature ID */
 	featureId?: string;
@@ -45,4 +45,7 @@ export interface Assertion {
 
 	/** 断言来源（Phase 2.1） */
 	createdFrom?: "mission.md" | "manual";
+
+	/** 备注（如标记为 infeasible 的原因） */
+	notes?: string;
 }

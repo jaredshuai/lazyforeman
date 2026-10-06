@@ -14,12 +14,17 @@
 		"lint:fix": "biome lint --write .",
 		"type": "tsc --noEmit",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:e2e": "vitest run test/e2e",
+		"quality": "tsx scripts/quality-check.ts",
+		"coverage": "tsx scripts/check-coverage.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12",
 		"@types/better-sqlite3": "^9.6.0",
 		"@types/node": "^24.19.1",
+		"@vitest/coverage-v8": "^5.0.3",
+		"tsx": "^4.23.15",
 		"typescript": "6.0.3",
 		"vite": "8.2.2",
 		"vitest": "5.0.0"

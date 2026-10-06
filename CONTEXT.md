@@ -246,17 +246,26 @@ DBOS 自动 checkpoint 保证不重复不丢失
 
 **实际交付时间**：2026-10-06
 
-### Phase 2.2: Lazy 契约工作流增强（规划中）
+### Phase 2.2: Lazy 契约工作流增强（✅ 已完成）
 
 **目标**：动态计划调整 + Grill-with-docs 深挖
 
-**关键特性**（基于 ADR-0003）：
-- Grill-with-docs 五维深挖（背景/边界/约束/风险/成功标准）
-- Worker 契约挑战机制（discoveredIssues → Orchestrator 处理）
-- 动态计划调整（新增 feature/移除过时断言/重构依赖 DAG）
-- send()/recv() 信号机制（人工介入点）
+**关键交付**：
+- Grill Agent：五维深挖机制 + Wayfinder 集成
+- Worker 契约挑战：discoveredIssues 机制
+- Orchestrator 动态调整：愿景冲突检测 + 三场景处理
+- send()/recv() 信号机制：workflow 暂停/恢复
+- 多 AI 裁决：三轮流程 + 留档机制
 
-**预计工作量**：2-3 周
+**测试覆盖**：
+- 测试文件和测试用例统计待 workers 完成后更新
+- 所有模块目标覆盖率 ≥ 80%
+
+**架构文档**：
+- `docs/phase-2.2-architecture.md`：完整架构设计
+- `docs/examples/grill-example.md`：Grill 使用示例
+
+**实际交付时间**：2026-10-06
 
 ### Phase 3-5
 
