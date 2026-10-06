@@ -67,23 +67,70 @@
 ### [IDEA-261006-08] Worker Adapter 可插拔架构
 - **提出时间与来源**：2026-10-06（Phase 1 骨架搭建后讨论，源于用户观察：OpenDesign/Orca/Multica 都已有对多种 CLI 的 wrapper）
 - **核心设想与场景**：Orchestrator 不绑定 omp，而是通过 `WorkerAdapter` 接口支持多种编程 agent CLI（omp, aider, cursor, multica 等）。直接复用 OpenDesign/Orca/Multica 的成熟 wrapper 层，而非自己重新实现。
-- **复用策略评估**（调研中）：
-  - **直接依赖**：能否作为库使用？集成复杂度如何？
-  - **Fork 改造**：保留哪些代码？需要改动什么？
-  - **参考设计**：学习其架构模式，避免已知坑
-- **现有工具分析重点**：
-  - **OpenDesign wrapper 层**：支持哪些 CLI？代码结构如何？
-  - **Orca wrapper 层**：支持哪些 CLI？接口设计如何？
-  - **Multica wrapper 层**：用户提到的 fallback 和角色扮演感知问题具体在哪？
+- **调研进展**（2 个 workflow 并行）：
+  - ✅ **Wrapper 架构调研**（已完成）：分析了 Orca（推荐 fork）、Multica（参考模式）、Open Design CLI（不适合）
+  - 🔄 **CLI 扫描能力调研**（进行中）：深度分析 OpenDesign 的 CLI 扫描、模型检测、能力探测实现
+- **第一轮调研结论**：
+  - **Orca**：推荐 fork 改造（MIT 许可，worktree + SQLite + DAG 与 lazyforeman 高度契合）
+  - **Multica**：仅参考模式（架构过重，已知 fallback 和角色扮演问题）
+  - **混合策略**：Orca 架构参考 + Multica 隔离模式借鉴 + 原创契约层
 - **收益**：
   - 吸收社区成熟轮子，降低维护成本
   - 用户可选最适合的工具（简单任务用 omp，复杂任务用 aider/cursor）
   - 降低对单一工具的依赖风险
 - **未立项原因/权衡**：
   - Phase 1 先证明单 worker 闭环可行（omp 足够）
-  - 等待调研结果（workflow 运行中：研究 OpenDesign/Orca/Multica 现有 wrapper 实现）
+  - 等待第二轮调研结果（CLI 扫描能力如何移植到 TypeScript）
   - Adapter 抽象可在 Phase 1.5 或 Phase 2 引入
 - **状态**：exploration（调研进行中）
+
+### [IDEA-261006-09] CLI 动态扫描与模型检测（吸收 OpenDesign 能力）
+- **提出时间与来源**：2026-10-06（ADR-0001 决策后讨论，用户明确希望吸收 OpenDesign 的 CLI 扫描能力）
+- **核心设想与场景**：实现动态 CLI 注册表，启动时自动扫描 PATH 发现所有可用的编程 agent CLI（aider、cursor、omp、codex 等），检测每个 CLI 使用的模型配置，探测其能力（非交互模式、JSON 输出、MCP 支持），根据任务特征自动选择最合适的 CLI + 模型组合。
+- **技术细节**（基于 OpenDesign 实现）：
+  - **CLI 扫描**：遍历 PATH，验证 CLI 是否为编程 agent（非同名的其他工具），获取版本信息
+  - **模型检测**：读取配置文件（`.aiderrc`、`.cursor/config.json` 等），或调用 CLI 命令查询模型信息
+  - **能力探测**：运行测试命令，检测是否支持 `-p`、`--json`、`--mcp` 等参数
+  - **动态选择**：根据任务复杂度、是否需要交互、预算等因素，选择最佳 CLI
+- **模块设计**：
+  ```typescript
+  // src/cli-registry/scanner.ts
+  export interface CliInfo {
+    name: string;           // 'aider' | 'cursor' | 'omp'
+    path: string;           // '/usr/local/bin/aider'
+    version: string;        // '0.45.1'
+    models: string[];       // ['gpt-4', 'claude-3-5-sonnet']
+    capabilities: {
+      nonInteractive: boolean;
+      structuredOutput: boolean;
+      mcpSupport: boolean;
+    };
+  }
+  export async function scanAvailableClis(): Promise<CliInfo[]>;
+  
+  // src/cli-registry/selector.ts
+  export function selectBestCli(
+    availableClis: CliInfo[],
+    task: TaskContext
+  ): CliInfo;
+  ```
+- **调研状态**：
+  - 🔄 Workflow 运行中：深度分析 https://github.com/nexu-io/open-design 的实现
+  - 调研产出：TypeScript 接口设计、可移植代码清单、集成方案、实施任务列表
+- **收益**：
+  - 用户无需手动配置，系统自动发现可用 CLI
+  - 根据任务特征智能选择最优 CLI（简单任务用快速 CLI，复杂任务用强模型）
+  - 降低对单一 CLI 的依赖（一个 CLI 失败可 fallback 到另一个）
+  - 透明的模型选择（用户可以看到每个任务用了哪个 CLI + 哪个模型）
+- **成本**：
+  - 需要维护 CLI 配置文件路径映射（不同 CLI 的配置格式不同）
+  - 能力探测需要实际调用 CLI（首次启动会慢一些）
+  - 需要处理 CLI 版本升级导致的 API 变化
+- **未立项原因/权衡**：
+  - Phase 1 先用固定的 omp，证明编排层可行
+  - 等待 OpenDesign 调研结果（如何移植到 TypeScript）
+  - 可在 Phase 1.5 或 Phase 2 引入（与 Worker Adapter 架构一起）
+- **状态**：exploration（调研进行中，workflow ID: wxdl59cdu）
 
 ---
 
