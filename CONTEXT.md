@@ -43,22 +43,34 @@
 - Schema 强制：`-p` 模式保证输出符合 JSON schema
 - 成本优化：动态路由 + advisor 可选
 
-### 2.2 编排与状态层：DBOS Transact + SQLite
+### 2.2 编排与状态层：自建 SQLite 持久层 + DBOS 可选升级
 
 **职责**：
 - Workflow 编排（串行依赖、并行派发、条件分支）
-- 状态持久化（features、assertions、handoffs、progress_log）
-- 崩溃恢复（自动 checkpoint + resume）
-- 信号机制（`send()` / `recv()` 实现人工介入）
+- 状态持久化（features、assertions、handoffs、progress_log、step_journal）
+- 崩溃恢复（step 日志 + 幂等跳过）
+- 信号机制（预留 `send()` / `recv()` 实现人工介入）
 
 **关键能力**：
 - 原子性：State + Handoff 同步更新
-- 可恢复性：从 `lastReviewedHandoffCount` 恢复
-- 事务性：DBOS step 保证操作不重复不丢失
+- 可恢复性：从 `step_journal` 恢复已完成 step
+- 幂等性：step 执行前检查是否已完成，避免重复
 
-**SQLite 后端选择**：
-- Phase 1-3 使用 SQLite（单机开发，零部署）
-- 预留 Postgres 迁移路径（生产环境、多实例）
+**Phase 1 实现**（ADR-0001）：
+- 使用自建 SQLite 持久层（`src/runtime/step-journal.ts` + `src/runtime/workflow-runner.ts`）
+- 实现最小 durable execution 语义（step 日志 + 幂等跳过）
+- 封顶条款：不实现分布式锁/Saga 补偿/子 workflow/Event sourcing
+
+**可选 DBOS 升级路径**：
+- `@dbos-inc/dbos-sdk` 保留为 optionalDependencies
+- 提供 Postgres URL 时自动切换到真 DBOS 引擎
+- Phase 2+ 按需切换（分布式需求、复杂编排、规模扩展）
+
+**理由**：
+- `@dbos-inc/dbos-sdk` 5.x 只支持 Postgres 后端，与 D4「单机零部署」冲突
+- Phase 1 目标是「证明可恢复」，而非「证明会用 DBOS」
+- 自建层复杂度可控（~200 行），满足本地验证需求
+- 详见 `docs/adr/0001-phase1-durable-engine-selection.md`
 
 ### 2.3 角色与契约层：BMAD-METHOD (待裁决)
 
@@ -164,8 +176,8 @@ DBOS 自动 checkpoint 保证不重复不丢失
 |---------|------|------|------|
 | D1 | 项目命名 | `lazyforeman`（CLI: `foreman`） | 零竞争、语义贴切、lazy 前缀成系列 |
 | D2 | 执行引擎 | omp（不用 aider/cursor） | 13 modelRoles、advisor 开关、worktree 隔离 |
-| D3 | 编排引擎 | DBOS Transact（不用 Temporal） | TypeScript 原生、信号机制、轻量级 |
-| D4 | 后端存储 | SQLite（预留 Postgres） | 单机零部署、DBOS 原生支持 |
+| D3 | 编排引擎 | Phase 1 自建 SQLite 持久层，预留 DBOS 升级路径 | 本地可验证、零外部依赖（ADR-0001） |
+| D4 | 后端存储 | SQLite（预留 Postgres） | 单机零部署、本地可验证 |
 | D5 | 交互模式（初期） | `-p` 非交互 | 简单、确定性输出、Phase 1 足够 |
 | D6 | Validator 策略 | 双轨（Scrutiny + User-testing） | 深度 + 广度，避免单点误判 |
 | D7 | 留存策略 | hybrid（ideas + minutes） | 想法池 + 结构化纪要，不丢历史 |
@@ -176,10 +188,12 @@ DBOS 自动 checkpoint 保证不重复不丢失
 |---------|------|------|-----------|--------|
 | IDEA-261006-06 | 契约格式 | BMAD vs Spec Kit | Phase 2 | High |
 | IDEA-261006-07 | 交互模式（后期） | `-p` vs `--mode rpc` | Phase 4 | Medium |
+| IDEA-261006-08 | Worker Adapter | 可插拔架构 vs 绑定 omp | Phase 2 | Medium |
 
 **ADR 计划**：
-- `docs/adr/0001-contract-format-selection.md`（下一个立 ADR）
-- `docs/adr/0002-interaction-mode-evolution.md`（Phase 4 前裁决）
+- `docs/adr/0001-phase1-durable-engine-selection.md`（**已完成** 2026-10-06）
+- `docs/adr/0002-contract-format-selection.md`（Phase 2 前裁决）
+- `docs/adr/0003-interaction-mode-evolution.md`（Phase 4 前裁决）
 
 ---
 
@@ -189,13 +203,21 @@ DBOS 自动 checkpoint 保证不重复不丢失
 
 ### Phase 1: 地基（当前）
 
-**目标**：单 feature 最小闭环
+**目标**：单 feature 最小闭环 + 崩溃恢复验证
 
 **关键交付**：
-- DBOS + SQLite 环境
-- 最小 `features.json` + Handoff schema
-- `create_worktree() → run_omp() → save_handoff() → cleanup_worktree()`
-- 崩溃恢复测试通过
+- 自建 SQLite 持久层（`step_journal` 表 + workflow runner）
+- 最小 `features.json` + Handoff schema（zod 4.x）
+- `createWorktree() → runOmp() → saveHandoff() → cleanupWorktree()`
+- 崩溃恢复测试通过（故障注入 + resume 幂等性验证）
+- worktree 管理（`.lazyforeman/worktrees/`，失败保留策略）
+
+**技术细节**（ADR-0001）：
+- SQLite 表：missions/features/assertions/handoffs/progress_log/step_journal
+- Workflow ID 格式：`<type>:<entityId>:<timestamp>`
+- 失败 step 重放：success 跳过，failed/started 重新执行
+- omp 测试策略：默认 mock，`USE_REAL_OMP=true` opt-in 真实调用
+- CLI 暂不提供（Phase 2），验收通过 `pnpm run test`
 
 **工作量**：2-3 周
 

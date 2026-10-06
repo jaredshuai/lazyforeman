@@ -64,6 +64,27 @@
 - **未立项原因/权衡**：取决于是否接受"worker 跑到一半回头问人"。若产品定位是"说完需求就等成果"，则 `-p` 足够，`recv()` 只用于异常挂起。
 - **状态**：exploration
 
+### [IDEA-261006-08] Worker Adapter 可插拔架构
+- **提出时间与来源**：2026-10-06（Phase 1 骨架搭建后讨论，源于用户观察：OpenDesign/Orca/Multica 都已有对多种 CLI 的 wrapper）
+- **核心设想与场景**：Orchestrator 不绑定 omp，而是通过 `WorkerAdapter` 接口支持多种编程 agent CLI（omp, aider, cursor, multica 等）。直接复用 OpenDesign/Orca/Multica 的成熟 wrapper 层，而非自己重新实现。
+- **复用策略评估**（调研中）：
+  - **直接依赖**：能否作为库使用？集成复杂度如何？
+  - **Fork 改造**：保留哪些代码？需要改动什么？
+  - **参考设计**：学习其架构模式，避免已知坑
+- **现有工具分析重点**：
+  - **OpenDesign wrapper 层**：支持哪些 CLI？代码结构如何？
+  - **Orca wrapper 层**：支持哪些 CLI？接口设计如何？
+  - **Multica wrapper 层**：用户提到的 fallback 和角色扮演感知问题具体在哪？
+- **收益**：
+  - 吸收社区成熟轮子，降低维护成本
+  - 用户可选最适合的工具（简单任务用 omp，复杂任务用 aider/cursor）
+  - 降低对单一工具的依赖风险
+- **未立项原因/权衡**：
+  - Phase 1 先证明单 worker 闭环可行（omp 足够）
+  - 等待调研结果（workflow 运行中：研究 OpenDesign/Orca/Multica 现有 wrapper 实现）
+  - Adapter 抽象可在 Phase 1.5 或 Phase 2 引入
+- **状态**：exploration（调研进行中）
+
 ---
 
 ## 2. 已采纳与已归档想法 (Promoted / Archived Ideas)
